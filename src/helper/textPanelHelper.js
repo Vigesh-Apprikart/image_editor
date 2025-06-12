@@ -1,0 +1,70 @@
+export const initialTextState = {
+  searchTerm: "",
+  selectedTextStyle: "h1",
+  selectedFont: "Arial",
+  textColor: "#3B82F6",
+  previewColor: "",
+  opacity: 1,
+  bold: false,
+  italic: false,
+  underline: false,
+};
+
+export const textStyles = [
+  { id: "h1", label: "H1", size: "42px" },
+  { id: "h2", label: "H2", size: "24px" },
+  { id: "title", label: "Title", size: "20px" },
+];
+
+export const fonts = [
+  "Arial",
+  "Helvetica",
+  "Georgia",
+  "Times New Roman",
+  "Verdana",
+  "Comic Sans MS",
+  "Impact",
+  "Trebuchet MS",
+  "Courier New",
+];
+
+export const colorPalette = [
+  "#FF6B6B",
+  "#4ECDC4",
+  "#45B7D1",
+  "#96CEB4",
+  "#FECA57",
+  "#FF9FF3",
+  "#54A0FF",
+  "#5F27CD",
+  "#00D2D3",
+  "#FF9F43",
+  "#EE5A24",
+  "#009432",
+  "#0652DD",
+  "#9980FA",
+  "#D63031",
+  "#74B9FF",
+  "#E17055",
+  "#00B894",
+  "#FDCB6E",
+  "#6C5CE7",
+  "#A29BFE",
+  "#FD79A8",
+  "#E84393",
+  "#2D3436",
+  "#636E72",
+  "#DDD6FE",
+  "#FEE2E2",
+  "#DCFCE7",
+  "#FEF3C7",
+  "#DBEAFE",
+];
+
+export const quickAccessColors = [
+  "#000000",
+  "#FFFFFF",
+  "#FF0000",
+  "#00FF00",
+  "#0000FF",
+];

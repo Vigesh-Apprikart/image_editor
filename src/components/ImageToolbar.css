@@ -1,0 +1,95 @@
+.image-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 6px 12px;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0e0e0;
+  height: 44px;
+  position: absolute;
+  top: -3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+
+.toolbar-tool {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  background: transparent;
+  border: none;
+  transition: background 0.2s;
+  height: 32px;
+}
+
+.toolbar-tool:hover {
+  background: #f2f2f2;
+}
+
+.tool-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-tool-label {
+  white-space: nowrap;
+}
+
+.crown-icon {
+  color: #ffd700;
+  font-size: 15px;
+  margin-right: 2px;
+}
+
+.divider {
+  width: 2px;
+  height: 20px;
+  background: #e0e0e0;
+}
+
+.color-circle-inline {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  transition: transform 0.2s ease;
+}
+
+.color-circle-inline:hover {
+  transform: scale(1.15);
+}
+
+@media (max-width: 768px) {
+  .image-toolbar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .toolbar-tool {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .toolbar-tool-label {
+    font-size: 11px;
+  }
+
+  .color-circle-inline {
+    width: 18px;
+    height: 18px;
+  }
+}
