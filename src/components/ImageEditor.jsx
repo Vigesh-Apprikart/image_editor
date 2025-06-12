@@ -888,7 +888,7 @@ const ImageEditor = forwardRef(
 
     useEffect(() => {
       const handleKeyDown = (e) => {
-        if (["Backspace", "Delete"].includes(e.key)) {
+        if (e.key === "Delete") {
           if (selectedTextId !== null) {
             setTextElements((prev) =>
               prev.filter((el) => el.id !== selectedTextId)
@@ -975,8 +975,7 @@ const ImageEditor = forwardRef(
                 position: "absolute",
                 top: el.y,
                 left: el.x,
-                minWidth: el.width,
-                width: "auto",
+                width: el.width,
                 minHeight: el.height,
                 height: "auto",
                 fontSize: el.fontSize,
@@ -1025,8 +1024,7 @@ const ImageEditor = forwardRef(
                 handleTextInput(el.id, text);
               }}
               onKeyDown={(e) => {
-                if (["Backspace", "Delete"].includes(e.key)) {
-                  // Delete the selected text element immediately
+                if (e.key === "Delete") {
                   setTextElements((prev) =>
                     prev.filter((item) => item.id !== el.id)
                   );
@@ -1034,6 +1032,7 @@ const ImageEditor = forwardRef(
                   e.preventDefault();
                   e.stopPropagation();
                 }
+                // Let Backspace work normally inside contentEditable
               }}
             />
           ))}
