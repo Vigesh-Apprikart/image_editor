@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar";
 import ImageEditor from "./components/ImageEditor";
 import ToolPanel from "./components/ToolPanel";
 import "./App.css";
+import ErrorBoundary from "./ErrorBoundary";
 
 function App() {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -50,41 +51,43 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <Header
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onDownload={handleDownload}
-        canUndo={historyIndex > 0}
-        canRedo={historyIndex < history.length - 1}
-        hasImage={!!selectedImage}
-      />
+    <ErrorBoundary>
+      <div className="app">
+        <Header
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onDownload={handleDownload}
+          canUndo={historyIndex > 0}
+          canRedo={historyIndex < history.length - 1}
+          hasImage={!!selectedImage}
+        />
 
-      <div className="main-content">
-        {selectedImage && (
-          <Sidebar activeTool={activeTool} onToolSelect={setActiveTool} />
-        )}
-        {selectedImage && activeTool && (
-          <ToolPanel
-            activeTool={activeTool}
-            editorRef={editorRef}
-            onClose={() => setActiveTool("")}
-            selectedImage={selectedImage}
-          />
-        )}
+        <div className="main-content">
+          {selectedImage && (
+            <Sidebar activeTool={activeTool} onToolSelect={setActiveTool} />
+          )}
+          {selectedImage && activeTool && (
+            <ToolPanel
+              activeTool={activeTool}
+              editorRef={editorRef}
+              onClose={() => setActiveTool("")}
+              selectedImage={selectedImage}
+            />
+          )}
 
-        <div className="editor-container">
-          <ImageEditor
-            ref={editorRef}
-            selectedImage={selectedImage}
-            onImageUpload={handleImageUpload}
-            activeTool={activeTool}
-            onImageChange={addToHistory}
-            onToolSelect={setActiveTool}
-          />
+          <div className="editor-container">
+            <ImageEditor
+              ref={editorRef}
+              selectedImage={selectedImage}
+              onImageUpload={handleImageUpload}
+              activeTool={activeTool}
+              onImageChange={addToHistory}
+              onToolSelect={setActiveTool}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }
 

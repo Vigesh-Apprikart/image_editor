@@ -38,6 +38,7 @@ const ImageEditor = forwardRef(
     const fileInputRef = useRef(null);
     const overlayImageInputRef = useRef(null);
     const containerRef = useRef(null);
+    const textElementRefs = useRef({});
     const [textElements, setTextElements] = useState([]);
     const [overlayImages, setOverlayImages] = useState([]);
     const [selectedTextId, setSelectedTextId] = useState(null);
@@ -112,10 +113,9 @@ const ImageEditor = forwardRef(
       isMountedRef.current = true;
       return () => {
         isMountedRef.current = false;
-        // Cleanup any lingering event listeners on unmount
-        window.removeEventListener("mousemove", handleDragMove);
-        window.removeEventListener("mouseup", handleDragEnd);
-        window.removeEventListener("blur", handleDragEnd);
+        window.removeEventListener("mousemove", handleMove);
+        window.removeEventListener("mouseup", handleEnd);
+        window.removeEventListener("blur", handleEnd);
       };
     }, []);
 
@@ -251,7 +251,7 @@ const ImageEditor = forwardRef(
         blurMaskCanvasRef.current,
         blurMaskCtxRef.current,
         brushSettings,
-        [],
+        []
       );
     }, [
       selectedImage,
@@ -319,7 +319,7 @@ const ImageEditor = forwardRef(
       setIsDrawing(false);
     }, []);
 
-    // Centralized drag handler for both overlay images and text elements
+    // Centralized drag handler
     const startDrag = (e, id, type) => {
       e.stopPropagation();
       if (type === "overlay") {
@@ -350,73 +350,13 @@ const ImageEditor = forwardRef(
         offsetX,
         offsetY,
         hasMoved: false,
+        action: "drag",
       };
 
       setIsDragging(true);
-
-      // ✅ Attach listeners manually
-      window.addEventListener("mousemove", handleDragMove);
-      window.addEventListener("mouseup", handleDragEnd);
-      window.addEventListener("blur", handleDragEnd);
     };
 
-    const handleDragMove = throttle((moveEvent) => {
-      if (!isDragging || !isMountedRef.current || !dragDataRef.current) return;
-
-      const { id, type, startX, startY, offsetX, offsetY } =
-        dragDataRef.current;
-      const dx = Math.abs(moveEvent.clientX - startX);
-      const dy = Math.abs(moveEvent.clientY - startY);
-
-      // Start dragging only if the mouse has moved beyond the threshold
-      if (
-        !dragDataRef.current.hasMoved &&
-        (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)
-      ) {
-        dragDataRef.current.hasMoved = true;
-      }
-
-      if (dragDataRef.current.hasMoved) {
-        const newX = moveEvent.clientX - offsetX;
-        const newY = moveEvent.clientY - offsetY;
-
-        if (type === "overlay") {
-          setOverlayImages((prev) =>
-            prev.map((el) => (el.id === id ? { ...el, x: newX, y: newY } : el))
-          );
-        } else if (type === "text") {
-          setTextElements((prev) =>
-            prev.map((el) => (el.id === id ? { ...el, x: newX, y: newY } : el))
-          );
-        }
-      }
-    }, 10); // Throttle to ~60fps
-
-    const handleDragEnd = () => {
-      setIsDragging(false);
-      dragDataRef.current = null;
-      window.removeEventListener("mousemove", handleDragMove);
-      window.removeEventListener("mouseup", handleDragEnd);
-      window.removeEventListener("blur", handleDragEnd);
-    };
-
-    useEffect(() => {
-      if (isDragging) {
-        window.addEventListener("mousemove", handleDragMove);
-        window.addEventListener("mouseup", handleDragEnd);
-        window.addEventListener("blur", handleDragEnd);
-      }
-
-      return () => {
-        if (isDragging) {
-          window.removeEventListener("mousemove", handleDragMove);
-          window.removeEventListener("mouseup", handleDragEnd);
-          window.removeEventListener("blur", handleDragEnd);
-        }
-      };
-    }, [isDragging]);
-
-    // Centralized resize handler for both overlay images and text elements
+    // Centralized resize handler
     const startResize = (e, id, type, direction) => {
       e.stopPropagation();
       if (type === "overlay") {
@@ -454,20 +394,25 @@ const ImageEditor = forwardRef(
         startTop,
         aspectRatio,
         hasMoved: false,
+        action: "resize",
       };
 
       setIsDragging(true);
     };
 
-    const handleResizeMove = throttle((moveEvent) => {
+    // Unified move handler
+    const handleMove = throttle((moveEvent) => {
       if (!isDragging || !isMountedRef.current || !dragDataRef.current) return;
 
       const {
         id,
         type,
-        direction,
+        action,
         startX,
         startY,
+        offsetX,
+        offsetY,
+        direction,
         startWidth,
         startHeight,
         startLeft,
@@ -478,84 +423,118 @@ const ImageEditor = forwardRef(
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
 
-      let newWidth = startWidth;
-      let newHeight = startHeight;
-      let newX = startLeft;
-      let newY = startTop;
-
-      if (type === "overlay") {
-        let minSize = 20; // prevent zero or negative sizes
-
-        if (direction.includes("e")) {
-          newWidth = Math.max(minSize, startWidth + dx);
-          newHeight = newWidth / aspectRatio;
-        }
-        if (direction.includes("s")) {
-          newHeight = Math.max(minSize, startHeight + dy);
-          newWidth = newHeight * aspectRatio;
-        }
-        if (direction.includes("w")) {
-          newWidth = Math.max(minSize, startWidth - dx);
-          newHeight = newWidth / aspectRatio;
-          newX = startLeft + (startWidth - newWidth);
-        }
-        if (direction.includes("n")) {
-          newHeight = Math.max(minSize, startHeight - dy);
-          newWidth = newHeight * aspectRatio;
-          newY = startTop + (startHeight - newHeight);
-        }
-
-        setOverlayImages((prev) =>
-          prev.map((el) =>
-            el.id === id
-              ? { ...el, width: newWidth, height: newHeight, x: newX, y: newY }
-              : el
-          )
-        );
-      } else if (type === "text") {
-        if (direction.includes("e")) newWidth = Math.max(10, startWidth + dx);
-        if (direction.includes("s")) newHeight = Math.max(10, startHeight + dy);
-        if (direction.includes("w")) {
-          newWidth = Math.max(10, startWidth - dx);
-          newX = startLeft + dx;
-        }
-        if (direction.includes("n")) {
-          newHeight = Math.max(10, startHeight - dy);
-          newY = startTop + dy;
-        }
-
-        setTextElements((prev) =>
-          prev.map((el) =>
-            el.id === id
-              ? { ...el, width: newWidth, height: newHeight, x: newX, y: newY }
-              : el
-          )
-        );
+      if (
+        !dragDataRef.current.hasMoved &&
+        (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)
+      ) {
+        dragDataRef.current.hasMoved = true;
       }
-    }, 16); // Throttle to ~60fps
 
-    const handleResizeEnd = () => {
+      if (!dragDataRef.current.hasMoved) return;
+
+      if (action === "drag") {
+        const newX = moveEvent.clientX - offsetX;
+        const newY = moveEvent.clientY - offsetY;
+
+        if (type === "overlay") {
+          setOverlayImages((prev) =>
+            prev.map((el) => (el.id === id ? { ...el, x: newX, y: newY } : el))
+          );
+        } else if (type === "text") {
+          setTextElements((prev) =>
+            prev.map((el) => (el.id === id ? { ...el, x: newX, y: newY } : el))
+          );
+        }
+      } else if (action === "resize") {
+        let newWidth = startWidth;
+        let newHeight = startHeight;
+        let newX = startLeft;
+        let newY = startTop;
+
+        if (type === "overlay") {
+          const minSize = 20;
+          if (direction.includes("e")) {
+            newWidth = Math.max(minSize, startWidth + dx);
+            newHeight = newWidth / aspectRatio;
+          }
+          if (direction.includes("s")) {
+            newHeight = Math.max(minSize, startHeight + dy);
+            newWidth = newHeight * aspectRatio;
+          }
+          if (direction.includes("w")) {
+            newWidth = Math.max(minSize, startWidth - dx);
+            newHeight = newWidth / aspectRatio;
+            newX = startLeft + (startWidth - newWidth);
+          }
+          if (direction.includes("n")) {
+            newHeight = Math.max(minSize, startHeight - dy);
+            newWidth = newHeight * aspectRatio;
+            newY = startTop + (startHeight - newHeight);
+          }
+
+          setOverlayImages((prev) =>
+            prev.map((el) =>
+              el.id === id
+                ? {
+                    ...el,
+                    width: newWidth,
+                    height: newHeight,
+                    x: newX,
+                    y: newY,
+                  }
+                : el
+            )
+          );
+        } else if (type === "text") {
+          if (direction.includes("e")) newWidth = Math.max(10, startWidth + dx);
+          if (direction.includes("s"))
+            newHeight = Math.max(10, startHeight + dy);
+          if (direction.includes("w")) {
+            newWidth = Math.max(10, startWidth - dx);
+            newX = startLeft + dx;
+          }
+          if (direction.includes("n")) {
+            newHeight = Math.max(10, startHeight - dy);
+            newY = startTop + dy;
+          }
+
+          setTextElements((prev) =>
+            prev.map((el) =>
+              el.id === id
+                ? {
+                    ...el,
+                    width: newWidth,
+                    height: newHeight,
+                    x: newX,
+                    y: newY,
+                  }
+                : el
+            )
+          );
+        }
+      }
+    }, 10);
+
+    // Unified end handler
+    const handleEnd = () => {
       setIsDragging(false);
       dragDataRef.current = null;
-      window.removeEventListener("mousemove", handleResizeMove);
-      window.removeEventListener("mouseup", handleResizeEnd);
-      window.removeEventListener("blur", handleResizeEnd);
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleEnd);
+      window.removeEventListener("blur", handleEnd);
     };
 
     useEffect(() => {
-      if (isDragging && dragDataRef.current?.direction) {
-        window.addEventListener("mousemove", handleResizeMove);
-        window.addEventListener("mouseup", handleResizeEnd);
-        window.addEventListener("blur", handleResizeEnd);
+      if (isDragging) {
+        window.addEventListener("mousemove", handleMove);
+        window.addEventListener("mouseup", handleEnd);
+        window.addEventListener("blur", handleEnd);
+        return () => {
+          window.removeEventListener("mousemove", handleMove);
+          window.removeEventListener("mouseup", handleEnd);
+          window.removeEventListener("blur", handleEnd);
+        };
       }
-
-      return () => {
-        if (isDragging && dragDataRef.current?.direction) {
-          window.removeEventListener("mousemove", handleResizeMove);
-          window.removeEventListener("mouseup", handleResizeEnd);
-          window.removeEventListener("blur", handleResizeEnd);
-        }
-      };
     }, [isDragging]);
 
     useImperativeHandle(ref, () => ({
@@ -579,7 +558,7 @@ const ImageEditor = forwardRef(
           ...prev,
           {
             id,
-            text,
+            text: text || "",
             x: 50,
             y: 50,
             fontSize,
@@ -879,62 +858,49 @@ const ImageEditor = forwardRef(
         setSelectedTextId(null);
         setSelectedOverlayImageId(null);
         setToolbarVisible(false);
+        if (
+          document.activeElement?.classList.contains("text-overlay-element")
+        ) {
+          document.activeElement.blur();
+        }
       }
     };
 
+    const handleTextKeyDown = (e) => {
+      if (["Delete", "Backspace", "Enter"].includes(e.key)) {
+        e.stopPropagation();
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        document.execCommand("insertText", false, "\n");
+      }
+    };
+
+    const handleTextInput = useCallback((id, text) => {
+      const normalizedText = text.normalize();
+      console.log(`Input text for ID ${id}: ${normalizedText}`);
+      setTextElements((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, text: normalizedText } : item
+        )
+      );
+    }, []);
+
     useEffect(() => {
       const handleKeyDown = (e) => {
-        if (e.key === "Delete") {
-          if (selectedOverlayImageId !== null) {
+        if (["Backspace", "Delete"].includes(e.key)) {
+          if (selectedTextId !== null) {
+            setTextElements((prev) =>
+              prev.filter((el) => el.id !== selectedTextId)
+            );
+            setSelectedTextId(null);
+            e.preventDefault();
+            e.stopPropagation();
+          } else if (selectedOverlayImageId !== null) {
             setOverlayImages((prev) =>
               prev.filter((el) => el.id !== selectedOverlayImageId)
             );
             setSelectedOverlayImageId(null);
-            e.preventDefault();
-            e.stopPropagation();
-          } else if (selectedTextId !== null) {
-            setTextElements((prev) =>
-              prev.filter((el) => el.id !== selectedTextId)
-            );
-            setSelectedTextId(null);
-            e.preventDefault();
-            e.stopPropagation();
-          } else if (selectedImage) {
-            onImageUpload(null);
-            setTextElements([]);
-            setOverlayImages([]);
-            setCropState({
-              x: 0,
-              y: 0,
-              width: 0,
-              height: 0,
-              aspectRatio: null,
-              rotation: 0,
-              verticalPerspective: 0,
-              horizontalPerspective: 0,
-            });
-            if (canvasRef.current) {
-              const canvas = canvasRef.current;
-              const ctx = canvas.getContext("2d");
-              if (ctx) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-              }
-            }
-            e.preventDefault();
-            e.stopPropagation();
-          }
-        } else if (e.key === "Backspace" && selectedTextId !== null) {
-          const selectedElement = textElements.find(
-            (el) => el.id === selectedTextId
-          );
-          if (
-            selectedElement?.text === "" &&
-            document.activeElement !== e.target
-          ) {
-            setTextElements((prev) =>
-              prev.filter((el) => el.id !== selectedTextId)
-            );
-            setSelectedTextId(null);
             e.preventDefault();
             e.stopPropagation();
           }
@@ -942,23 +908,8 @@ const ImageEditor = forwardRef(
       };
 
       document.addEventListener("keydown", handleKeyDown);
-      return () => {
-        document.removeEventListener("keydown", handleKeyDown);
-      };
-    }, [
-      selectedTextId,
-      textElements,
-      selectedImage,
-      onImageUpload,
-      selectedOverlayImageId,
-      overlayImages,
-    ]);
-
-    const handleTextKeyDown = (e) => {
-      if (e.key === "Delete" || e.key === "Backspace") {
-        e.stopPropagation();
-      }
-    };
+      return () => document.removeEventListener("keydown", handleKeyDown);
+    }, [selectedTextId, selectedOverlayImageId]);
 
     if (!selectedImage) {
       return (
@@ -988,7 +939,7 @@ const ImageEditor = forwardRef(
     }
 
     return (
-      <div className="image-editor">
+      <div className="image-editor" dir="ltr">
         <ImageToolbar
           visible={toolbarVisible}
           onToolSelect={(toolId) => {
@@ -1019,12 +970,15 @@ const ImageEditor = forwardRef(
             <div
               key={el.id}
               className="text-overlay-element"
+              dir="auto"
               style={{
                 position: "absolute",
                 top: el.y,
                 left: el.x,
-                width: el.width,
-                height: el.height,
+                minWidth: el.width,
+                width: "auto",
+                minHeight: el.height,
+                height: "auto",
                 fontSize: el.fontSize,
                 fontFamily: el.fontFamily,
                 color: el.color,
@@ -1041,35 +995,47 @@ const ImageEditor = forwardRef(
                 cursor: "move",
                 userSelect: "none",
                 outline: "none",
+                whiteSpace: "pre-wrap",
               }}
               contentEditable
+              tabIndex={0}
               suppressContentEditableWarning
               draggable={false}
-              onMouseDown={(e) => startDrag(e, el.id, "text")}
-              onInput={(e) => {
-                setTextElements((prev) =>
-                  prev.map((item) =>
-                    item.id === el.id
-                      ? { ...item, text: e.target.innerText }
-                      : item
-                  )
-                );
+              ref={(node) => {
+                if (node) {
+                  textElementRefs.current[el.id] = node;
+                  if (!node.innerText) {
+                    node.innerText = el.text; // ✅ inject initial text once
+                  }
+                }
               }}
-              onKeyDown={handleTextKeyDown}
-            >
-              {el.text}
-              {selectedTextId === el.id && (
-                <>
-                  {["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((dir) => (
-                    <div
-                      key={dir}
-                      className={`resizer resizer-${dir}`}
-                      onMouseDown={(e) => startResize(e, el.id, "text", dir)}
-                    />
-                  ))}
-                </>
-              )}
-            </div>
+              onMouseDown={(e) => {
+                if (e.target === textElementRefs.current[el.id]) {
+                  startDrag(e, el.id, "text");
+                }
+              }}
+              onFocus={() => setSelectedTextId(el.id)}
+              onBlur={() => {
+                const text = textElementRefs.current[el.id]?.innerText || "";
+                handleTextInput(el.id, text);
+              }}
+              onInput={(e) => {
+                const text = e.target.innerText;
+                console.log(`Raw input event text: ${text}`);
+                handleTextInput(el.id, text);
+              }}
+              onKeyDown={(e) => {
+                if (["Backspace", "Delete"].includes(e.key)) {
+                  // Delete the selected text element immediately
+                  setTextElements((prev) =>
+                    prev.filter((item) => item.id !== el.id)
+                  );
+                  setSelectedTextId(null);
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
+            />
           ))}
           {overlayImages.map((el) => (
             <div
