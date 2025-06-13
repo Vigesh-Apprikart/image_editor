@@ -380,7 +380,7 @@ const ImageEditor = forwardRef(
       const startHeight = element.height;
       const startLeft = element.x;
       const startTop = element.y;
-      const aspectRatio = element.width / element.height;
+      // const aspectRatio = element.width / element.height;
 
       dragDataRef.current = {
         id,
@@ -392,7 +392,7 @@ const ImageEditor = forwardRef(
         startHeight,
         startLeft,
         startTop,
-        aspectRatio,
+        // aspectRatio,
         hasMoved: false,
         action: "resize",
       };
@@ -453,23 +453,39 @@ const ImageEditor = forwardRef(
 
         if (type === "overlay") {
           const minSize = 20;
-          if (direction.includes("e")) {
+
+          // Width-only resizers
+          if (direction === "e") {
             newWidth = Math.max(minSize, startWidth + dx);
-            newHeight = newWidth / aspectRatio;
           }
-          if (direction.includes("s")) {
-            newHeight = Math.max(minSize, startHeight + dy);
-            newWidth = newHeight * aspectRatio;
-          }
-          if (direction.includes("w")) {
+          if (direction === "w") {
             newWidth = Math.max(minSize, startWidth - dx);
-            newHeight = newWidth / aspectRatio;
-            newX = startLeft + (startWidth - newWidth);
+            newX = startLeft + dx;
           }
-          if (direction.includes("n")) {
+
+          // Height-only resizers
+          if (direction === "s") {
+            newHeight = Math.max(minSize, startHeight + dy);
+          }
+          if (direction === "n") {
             newHeight = Math.max(minSize, startHeight - dy);
-            newWidth = newHeight * aspectRatio;
-            newY = startTop + (startHeight - newHeight);
+            newY = startTop + dy;
+          }
+
+          // Diagonal resizers (stretch both)
+          if (["ne", "se"].includes(direction)) {
+            newWidth = Math.max(minSize, startWidth + dx);
+          }
+          if (["nw", "sw"].includes(direction)) {
+            newWidth = Math.max(minSize, startWidth - dx);
+            newX = startLeft + dx;
+          }
+          if (["sw", "se"].includes(direction)) {
+            newHeight = Math.max(minSize, startHeight + dy);
+          }
+          if (["nw", "ne"].includes(direction)) {
+            newHeight = Math.max(minSize, startHeight - dy);
+            newY = startTop + dy;
           }
 
           setOverlayImages((prev) =>
@@ -897,7 +913,11 @@ const ImageEditor = forwardRef(
           console.log("Overlay images during download:", overlayImages);
           console.log("Text elements during download:", textElements);
           console.log("Canvas dimensions:", canvas.width, canvas.height);
-          console.log("Visible dimensions:", canvasRect.width, canvasRect.height);
+          console.log(
+            "Visible dimensions:",
+            canvasRect.width,
+            canvasRect.height
+          );
           console.log("Scaling factors:", scaleX, scaleY);
 
           // Draw overlay images, scaling their positions and sizes
@@ -911,13 +931,7 @@ const ImageEditor = forwardRef(
                 const scaledY = (overlay.y - cropState.y) * scaleY;
                 const scaledWidth = overlay.width * scaleX;
                 const scaledHeight = overlay.height * scaleY;
-                ctx.drawImage(
-                  img,
-                  scaledX,
-                  scaledY,
-                  scaledWidth,
-                  scaledHeight
-                );
+                ctx.drawImage(img, scaledX, scaledY, scaledWidth, scaledHeight);
                 ctx.globalAlpha = 1;
                 resolve();
               };
@@ -952,7 +966,8 @@ const ImageEditor = forwardRef(
           });
         };
 
-        baseImage.onerror = () => console.error("Error loading base image for download");
+        baseImage.onerror = () =>
+          console.error("Error loading base image for download");
         baseImage.src = selectedImage;
       },
     }));
@@ -1082,72 +1097,102 @@ const ImageEditor = forwardRef(
           {textElements.map((el) => (
             <div
               key={el.id}
-              className="text-overlay-element"
-              dir="auto"
+              className="text-overlay-element-wrapper"
               style={{
                 position: "absolute",
                 top: el.y,
                 left: el.x,
                 width: el.width,
-                minHeight: el.height,
-                height: "auto",
-                fontSize: el.fontSize,
-                fontFamily: el.fontFamily,
-                color: el.color,
-                opacity: el.opacity,
-                fontWeight: el.fontWeight,
-                fontStyle: el.fontStyle,
-                textDecoration: el.textDecoration,
-                border:
-                  selectedTextId === el.id
-                    ? "2px solid #8B5CF6"
-                    : "1px solid transparent",
-                padding: "4px",
-                background: "transparent",
-                cursor: "move",
-                userSelect: "none",
-                outline: "none",
-                whiteSpace: "pre-wrap",
+                height: el.height,
+                zIndex: 100,
               }}
-              contentEditable
-              tabIndex={0}
-              suppressContentEditableWarning
-              draggable={false}
-              ref={(node) => {
-                if (node) {
-                  textElementRefs.current[el.id] = node;
-                  if (!node.innerText) {
-                    node.innerText = el.text;
+            >
+              <div
+                className="text-overlay-element"
+                dir="auto"
+                contentEditable
+                tabIndex={0}
+                suppressContentEditableWarning
+                style={{
+                  width: "100%",
+                  height: el.height,
+                  fontSize: el.fontSize,
+                  fontFamily: el.fontFamily,
+                  color: el.color,
+                  opacity: el.opacity,
+                  fontWeight: el.fontWeight,
+                  fontStyle: el.fontStyle,
+                  textDecoration: el.textDecoration,
+                  padding: "4px",
+                  background: "transparent",
+                  border:
+                    selectedTextId === el.id
+                      ? "2px solid #8B5CF6"
+                      : "1px solid transparent",
+                  whiteSpace: "pre-wrap",
+                  overflow: "visible",
+                  outline: "none",
+                  cursor: "move",
+                  userSelect: "none",
+                }}
+                draggable={false}
+                ref={(node) => {
+                  if (node) {
+                    textElementRefs.current[el.id] = node;
+                    if (!node.innerText) {
+                      node.innerText = el.text;
+                    }
                   }
-                }
-              }}
-              onMouseDown={(e) => {
-                if (e.target === textElementRefs.current[el.id]) {
-                  startDrag(e, el.id, "text");
-                }
-              }}
-              onFocus={() => setSelectedTextId(el.id)}
-              onBlur={() => {
-                const text = textElementRefs.current[el.id]?.innerText || "";
-                handleTextInput(el.id, text);
-              }}
-              onInput={(e) => {
-                const text = e.target.innerText;
-                console.log(`Raw input event text: ${text}`);
-                handleTextInput(el.id, text);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Delete") {
-                  setTextElements((prev) =>
-                    prev.filter((item) => item.id !== el.id)
-                  );
-                  setSelectedTextId(null);
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              }}
-            />
+                }}
+                onMouseDown={(e) => {
+                  if (e.target === textElementRefs.current[el.id]) {
+                    startDrag(e, el.id, "text");
+                  }
+                }}
+                onFocus={() => setSelectedTextId(el.id)}
+                onBlur={() => {
+                  const text = textElementRefs.current[el.id]?.innerText || "";
+                  handleTextInput(el.id, text);
+                }}
+                onInput={(e) => {
+                  const text = e.target.innerText;
+                  handleTextInput(el.id, text);
+
+                  // 🪄 Auto-resize height based on scrollHeight
+                  const currentNode = textElementRefs.current[el.id];
+                  if (currentNode) {
+                    const newHeight = currentNode.scrollHeight;
+                    setTextElements((prev) =>
+                      prev.map((item) =>
+                        item.id === el.id
+                          ? { ...item, height: newHeight }
+                          : item
+                      )
+                    );
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Delete") {
+                    setTextElements((prev) =>
+                      prev.filter((item) => item.id !== el.id)
+                    );
+                    setSelectedTextId(null);
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+              />
+              {selectedTextId === el.id &&
+                ["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((dir) => (
+                  <div
+                    key={dir}
+                    className={`resizer resizer-${dir}`}
+                    onMouseDown={(e) => startResize(e, el.id, "text", dir)}
+                  />
+                ))}
+            </div>
           ))}
+
           {overlayImages.map((el) => (
             <div
               key={el.id}
@@ -1174,7 +1219,7 @@ const ImageEditor = forwardRef(
                 style={{
                   width: "100%",
                   height: "100%",
-                  objectFit: "contain",
+                  objectFit: "fill",
                 }}
                 alt="Overlay"
               />
