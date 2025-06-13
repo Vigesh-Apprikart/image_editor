@@ -39,6 +39,7 @@ const ImageEditor = forwardRef(
     const overlayImageInputRef = useRef(null);
     const containerRef = useRef(null);
     const textElementRefs = useRef({});
+    const resizeTimeoutRef = useRef(null);
     const [textElements, setTextElements] = useState([]);
     const [overlayImages, setOverlayImages] = useState([]);
     const [selectedTextId, setSelectedTextId] = useState(null);
@@ -502,16 +503,25 @@ const ImageEditor = forwardRef(
             )
           );
         } else if (type === "text") {
-          if (direction.includes("e")) newWidth = Math.max(10, startWidth + dx);
-          if (direction.includes("s"))
-            newHeight = Math.max(10, startHeight + dy);
-          if (direction.includes("w")) {
-            newWidth = Math.max(10, startWidth - dx);
-            newX = startLeft + dx;
-          }
-          if (direction.includes("n")) {
-            newHeight = Math.max(10, startHeight - dy);
-            newY = startTop + dy;
+          if (["se", "nw", "ne", "sw"].includes(direction)) {
+            const delta = Math.max(dx, dy);
+            newWidth = Math.max(10, startWidth + delta);
+            newHeight = Math.max(10, startHeight + delta);
+            if (["nw", "sw"].includes(direction)) newX = startLeft - delta;
+            if (["nw", "ne"].includes(direction)) newY = startTop - delta;
+          } else {
+            if (direction.includes("e"))
+              newWidth = Math.max(10, startWidth + dx);
+            if (direction.includes("s"))
+              newHeight = Math.max(10, startHeight + dy);
+            if (direction.includes("w")) {
+              newWidth = Math.max(10, startWidth - dx);
+              newX = startLeft + dx;
+            }
+            if (direction.includes("n")) {
+              newHeight = Math.max(10, startHeight - dy);
+              newY = startTop + dy;
+            }
           }
 
           setTextElements((prev) =>
@@ -569,6 +579,9 @@ const ImageEditor = forwardRef(
         const id = Date.now();
         const fontSize =
           style === "h1" ? "32px" : style === "h2" ? "24px" : "20px";
+        const numericSize = parseInt(fontSize);
+        const defaultWidth = numericSize * 10;
+        const defaultHeight = numericSize * 2;
 
         setTextElements((prev) => [
           ...prev,
@@ -584,8 +597,8 @@ const ImageEditor = forwardRef(
             fontWeight: fontWeight || "normal",
             fontStyle: fontStyle || "normal",
             textDecoration: textDecoration || "none",
-            width: 200,
-            height: 50,
+            width: defaultWidth,
+            height: defaultHeight,
           },
         ]);
         setSelectedTextId(id);
@@ -597,14 +610,70 @@ const ImageEditor = forwardRef(
         }
         overlayImageInputRef.current?.click();
       },
+
+      // Inside useImperativeHandle
       updateSelectedText: (props) => {
         if (!isMountedRef.current) return;
+
+        // Apply font styles immediately
         setTextElements((prev) =>
           prev.map((el) =>
             el.id === selectedTextId ? { ...el, ...props } : el
           )
         );
+
+        // Cancel pending resize
+        if (resizeTimeoutRef.current) {
+          clearTimeout(resizeTimeoutRef.current);
+        }
+
+        // Debounce to avoid over-triggering during rapid input
+        resizeTimeoutRef.current = setTimeout(() => {
+          const node = textElementRefs.current[selectedTextId];
+          if (!node) return;
+
+          // Apply styles for layout update
+          if (props.fontSize) node.style.fontSize = props.fontSize;
+          if (props.fontFamily) node.style.fontFamily = props.fontFamily;
+          if (props.fontWeight) node.style.fontWeight = props.fontWeight;
+          if (props.fontStyle) node.style.fontStyle = props.fontStyle;
+          if (props.textDecoration)
+            node.style.textDecoration = props.textDecoration;
+
+          // Reset size to auto for accurate measurement
+          node.style.width = "auto";
+          node.style.height = "auto";
+
+          // Force reflow
+          void node.offsetWidth;
+
+          // 🪄 Wait two frames for accurate layout
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              const text = node.innerText || "";
+              const fontSizePx = parseInt(props.fontSize || "20", 10);
+              const fallbackWidth = fontSizePx * Math.max(text.length * 0.6, 5);
+
+              const newWidth = Math.max(node.scrollWidth + 8, fallbackWidth);
+              const newHeight = node.scrollHeight;
+
+              // ✅ Apply both together — this prevents mismatch
+              setTextElements((prev) =>
+                prev.map((el) =>
+                  el.id === selectedTextId
+                    ? {
+                        ...el,
+                        width: newWidth,
+                        height: newHeight,
+                      }
+                    : el
+                )
+              );
+            });
+          });
+        }, 60); // small debounce helps performance
       },
+
       applyCrop: ({ aspectRatio, reset = false }) => {
         if (!canvasRef.current) return;
         const canvas = canvasRef.current;
@@ -1115,7 +1184,7 @@ const ImageEditor = forwardRef(
                 suppressContentEditableWarning
                 style={{
                   width: "100%",
-                  height: el.height,
+                  height: "100%",
                   fontSize: el.fontSize,
                   fontFamily: el.fontFamily,
                   color: el.color,
@@ -1129,11 +1198,15 @@ const ImageEditor = forwardRef(
                     selectedTextId === el.id
                       ? "2px solid #8B5CF6"
                       : "1px solid transparent",
-                  whiteSpace: "pre-wrap",
                   overflow: "visible",
                   outline: "none",
                   cursor: "move",
                   userSelect: "none",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+
+                  minWidth: 40, // just a safeguard
                 }}
                 draggable={false}
                 ref={(node) => {
@@ -1182,14 +1255,14 @@ const ImageEditor = forwardRef(
                   }
                 }}
               />
-              {selectedTextId === el.id &&
-                ["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((dir) => (
-                  <div
-                    key={dir}
-                    className={`resizer resizer-${dir}`}
-                    onMouseDown={(e) => startResize(e, el.id, "text", dir)}
-                  />
-                ))}
+              {selectedTextId === el.id && (
+                <div
+                  className="text-move-handle"
+                  onMouseDown={(e) => startDrag(e, el.id, "text")}
+                >
+                  <span className="move-icon">↕ Move</span>
+                </div>
+              )}
             </div>
           ))}
 

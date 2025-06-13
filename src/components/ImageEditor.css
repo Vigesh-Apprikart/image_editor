@@ -173,6 +173,34 @@
   outline: 1px dashed #8B5CF6;
 }
 
+.text-move-handle {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #8b5cf6;
+  color: white;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: grab;
+  user-select: none;
+  z-index: 150;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: background-color 0.2s ease;
+}
+
+.text-move-handle:hover {
+  background-color: #7c3aed;
+}
+
+.move-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
 @media (max-width: 768px) {
   .image-editor {
     padding: 16px;

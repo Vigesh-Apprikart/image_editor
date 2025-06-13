@@ -17,20 +17,26 @@ import {
 
 const TextPanel = ({ editorRef }) => {
   const [searchTerm, setSearchTerm] = useState(initialTextState.searchTerm);
-  const [selectedTextStyle, setSelectedTextStyle] = useState(initialTextState.selectedTextStyle);
-  const [selectedFont, setSelectedFont] = useState(initialTextState.selectedFont);
+  const [selectedTextStyle, setSelectedTextStyle] = useState(
+    initialTextState.selectedTextStyle
+  );
+  const [selectedFont, setSelectedFont] = useState(
+    initialTextState.selectedFont
+  );
   const [textColor, setTextColor] = useState(initialTextState.textColor);
-  const [previewColor, setPreviewColor] = useState(initialTextState.previewColor);
+  const [previewColor, setPreviewColor] = useState(
+    initialTextState.previewColor
+  );
   const [opacity, setOpacity] = useState(initialTextState.opacity);
   const [bold, setBold] = useState(initialTextState.bold);
   const [italic, setItalic] = useState(initialTextState.italic);
   const [underline, setUnderline] = useState(initialTextState.underline);
+  const [fontSize, setFontSize] = useState(20);
 
   // Update selected text when relevant states change
   useEffect(() => {
     editorRef.current?.updateSelectedText?.({
-      fontSize:
-        textStyles.find((s) => s.id === selectedTextStyle)?.size || "20px",
+      fontSize: `${fontSize}px`,
       fontFamily: selectedFont,
       color: textColor,
       opacity,
@@ -38,7 +44,16 @@ const TextPanel = ({ editorRef }) => {
       fontStyle: italic ? "italic" : "normal",
       textDecoration: underline ? "underline" : "none",
     });
-  }, [selectedTextStyle, selectedFont, textColor, opacity, bold, italic, underline, editorRef]);
+  }, [
+    fontSize,
+    selectedFont,
+    textColor,
+    opacity,
+    bold,
+    italic,
+    underline,
+    editorRef,
+  ]);
 
   const handleAddText = () => {
     editorRef.current?.addText({
@@ -78,7 +93,7 @@ const TextPanel = ({ editorRef }) => {
 
   return (
     <div className="text-panel">
-      <div className="form-group">
+      {/* <div className="form-group">
         <div className="search-container">
           <FaSearch className="search-icon" />
           <input
@@ -89,7 +104,7 @@ const TextPanel = ({ editorRef }) => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-      </div>
+      </div> */}
 
       <button className="btn btn-custom add-button" onClick={handleAddText}>
         <FaPlus size={14} /> Add Text
@@ -117,24 +132,15 @@ const TextPanel = ({ editorRef }) => {
       </div>
 
       <div className="form-group">
-        <label className="form-label">Font Family</label>
-        <select
-          className="form-input"
-          value={selectedFont}
-          onChange={(e) => {
-            if (selectedFont !== e.target.value) {
-              setSelectedFont(e.target.value);
-            }
-          }}
-        >
-          {fonts
-            .filter((f) => f.toLowerCase().includes(searchTerm.toLowerCase()))
-            .map((font) => (
-              <option key={font} value={font} style={{ fontFamily: font }}>
-                {font}
-              </option>
-            ))}
-        </select>
+        <label className="form-label">Font Size: {fontSize}px</label>
+        <input
+          type="range"
+          min="8"
+          max="100"
+          value={fontSize}
+          onChange={(e) => setFontSize(parseInt(e.target.value))}
+          className="opacity-slider"
+        />
       </div>
 
       <div className="form-group">
@@ -255,6 +261,26 @@ const TextPanel = ({ editorRef }) => {
           >
             <FaUnderline />
           </button>
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Font Family</label>
+        <div className="font-thumbnail-grid">
+          {fonts.map((font) => (
+            <div
+              key={font}
+              className={`font-thumb-item ${
+                selectedFont === font ? "selected" : ""
+              }`}
+              onClick={() => setSelectedFont(font)}
+            >
+              <div className="font-thumb-preview" style={{ fontFamily: font }}>
+                Aa
+              </div>
+              <div className="font-thumb-label">{font}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
