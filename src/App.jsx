@@ -33,14 +33,18 @@ function App() {
     }
   };
 
+  // const handleDownload = () => {
+  //   if (editorRef.current) {
+  //     const canvas = editorRef.current.getCanvas();
+  //     const link = document.createElement("a");
+  //     link.download = "edited-image.png";
+  //     link.href = canvas.toDataURL();
+  //     link.click();
+  //   }
+  // };
+
   const handleDownload = () => {
-    if (editorRef.current) {
-      const canvas = editorRef.current.getCanvas();
-      const link = document.createElement("a");
-      link.download = "edited-image.png";
-      link.href = canvas.toDataURL();
-      link.click();
-    }
+    editorRef.current?.downloadImage();
   };
 
   const addToHistory = (imageUrl) => {

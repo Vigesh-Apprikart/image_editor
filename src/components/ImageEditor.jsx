@@ -842,6 +842,119 @@ const ImageEditor = forwardRef(
         );
         setRenderTrigger((prev) => prev + 1);
       },
+      downloadImage: () => {
+        if (!selectedImage || !canvasRef.current) return;
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        // Use the editor canvas's internal dimensions (not the visible size)
+        const editorCanvas = canvasRef.current;
+        canvas.width = editorCanvas.width;
+        canvas.height = editorCanvas.height;
+
+        // Calculate scaling factors based on visible size vs internal size
+        const canvasRect = editorCanvas.getBoundingClientRect();
+        const scaleX = editorCanvas.width / canvasRect.width;
+        const scaleY = editorCanvas.height / canvasRect.height;
+
+        // Clear the canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const baseImage = new Image();
+        baseImage.onload = () => {
+          // Save the context state to apply transformations for the base image
+          ctx.save();
+
+          // Apply transformations for the base image
+          ctx.translate(canvas.width / 2, canvas.height / 2);
+          ctx.rotate((cropState.rotation * Math.PI) / 180);
+          const vScale = 1 + cropState.verticalPerspective / 100;
+          const hScale = 1 + cropState.horizontalPerspective / 100;
+          ctx.scale(hScale, vScale);
+          ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+          // Draw the base image to match the editor canvas dimensions
+          ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+
+          // Apply adjustments
+          applyAdjustmentsToContext(
+            ctx,
+            baseImage,
+            adjustments,
+            colorAdjustments,
+            duotone,
+            brushMode,
+            blurMaskCanvasRef.current,
+            brushSettings
+          );
+
+          // Restore the context to remove transformations for overlay images and text
+          ctx.restore();
+
+          // Log the state for debugging
+          console.log("Overlay images during download:", overlayImages);
+          console.log("Text elements during download:", textElements);
+          console.log("Canvas dimensions:", canvas.width, canvas.height);
+          console.log("Visible dimensions:", canvasRect.width, canvasRect.height);
+          console.log("Scaling factors:", scaleX, scaleY);
+
+          // Draw overlay images, scaling their positions and sizes
+          const overlayPromises = overlayImages.map((overlay) => {
+            return new Promise((resolve) => {
+              const img = new Image();
+              img.src = overlay.src;
+              img.onload = () => {
+                ctx.globalAlpha = overlay.opacity;
+                const scaledX = (overlay.x - cropState.x) * scaleX;
+                const scaledY = (overlay.y - cropState.y) * scaleY;
+                const scaledWidth = overlay.width * scaleX;
+                const scaledHeight = overlay.height * scaleY;
+                ctx.drawImage(
+                  img,
+                  scaledX,
+                  scaledY,
+                  scaledWidth,
+                  scaledHeight
+                );
+                ctx.globalAlpha = 1;
+                resolve();
+              };
+              img.onerror = () => {
+                console.error("Error loading overlay image during download");
+                resolve();
+              };
+            });
+          });
+
+          // Draw text elements, scaling their positions and font size
+          Promise.all(overlayPromises).then(() => {
+            textElements.forEach((el) => {
+              const scaledFontSize = parseInt(el.fontSize) * scaleY;
+              ctx.font = `${el.fontStyle} ${el.fontWeight} ${scaledFontSize}px ${el.fontFamily}`;
+              ctx.fillStyle = el.color;
+              ctx.globalAlpha = el.opacity;
+              ctx.textBaseline = "top";
+              const scaledX = (el.x - cropState.x) * scaleX;
+              const scaledY = (el.y - cropState.y) * scaleY;
+              ctx.fillText(el.text, scaledX, scaledY);
+              ctx.globalAlpha = 1;
+            });
+
+            // Download the image
+            setTimeout(() => {
+              const link = document.createElement("a");
+              link.download = "edited-image.png";
+              link.href = canvas.toDataURL("image/png");
+              link.click();
+            }, 500);
+          });
+        };
+
+        baseImage.onerror = () => console.error("Error loading base image for download");
+        baseImage.src = selectedImage;
+      },
     }));
 
     const handleCanvasClick = (e) => {
@@ -1004,7 +1117,7 @@ const ImageEditor = forwardRef(
                 if (node) {
                   textElementRefs.current[el.id] = node;
                   if (!node.innerText) {
-                    node.innerText = el.text; // ✅ inject initial text once
+                    node.innerText = el.text;
                   }
                 }
               }}
@@ -1032,7 +1145,6 @@ const ImageEditor = forwardRef(
                   e.preventDefault();
                   e.stopPropagation();
                 }
-                // Let Backspace work normally inside contentEditable
               }}
             />
           ))}
