@@ -4,7 +4,7 @@ import './Sidebar.css';
 
 const tools = [
   { id: 'text', label: 'Text', icon: FaFont },
-  { id: 'crop', label: 'Crop', icon: FaCrop },
+  // { id: 'crop', label: 'Crop', icon: FaCrop },
   { id: 'adjust', label: 'Adjust', icon: FaAdjust },
   { id: 'filters', label: 'Filters', icon: FaFilter },
   { id: 'effects', label: 'Effects', icon: FaMagic },

@@ -11,7 +11,7 @@ export const filterCategories = {
   "Soft": ["Aura", "Hazel", "Whimsi", "Rose", "Oceanic", "Nimbus"],
   "Vintage": ["Vinto", "Fade", "Antiq", "Nostalg", "Dream", "Retro"],
   "Mono": ["Classic", "Ink", "Noir", "Film", "Newspaper", "Slate"],
-  "Color Pop": ["Octrun", "Heatwave", "Amethyst", "Minty", "Poster", "X-Pro-", "X-Pro+"],
+  // "Color Pop": ["Octrun", "Heatwave", "Amethyst", "Minty", "Poster", "X-Pro-", "X-Pro+"],
 };
 
 export const filterAdjustments = {

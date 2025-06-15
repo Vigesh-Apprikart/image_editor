@@ -1,6 +1,6 @@
 import React from "react";
 import TextPanel from "./panels/TextPanel";
-import CropPanel from "./panels/CropPanel";
+// import CropPanel from "./panels/CropPanel"; // 🔒 CropPanel commented
 import AdjustPanel from "./panels/AdjustPanel";
 import FiltersPanel from "./panels/FiltersPanel";
 import EffectsPanel from "./panels/EffectsPanel";
@@ -12,8 +12,8 @@ const ToolPanel = ({ activeTool, editorRef, onClose, selectedImage }) => {
     switch (activeTool) {
       case "text":
         return <TextPanel editorRef={editorRef} />;
-      case "crop":
-        return <CropPanel editorRef={editorRef} />;
+      // case "crop":
+      //   return <CropPanel editorRef={editorRef} />; // 🔒 CropPanel rendering commented
       case "adjust":
         return <AdjustPanel editorRef={editorRef} />;
       case "filters":

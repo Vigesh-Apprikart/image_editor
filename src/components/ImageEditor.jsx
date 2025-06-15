@@ -33,82 +33,279 @@
 // const DRAG_THRESHOLD = 5; // Pixels to move before starting drag
 
 // const ImageEditor = forwardRef(
-//   ({ selectedImage, onImageUpload, activeTool, onToolSelect }, ref) => {
+//   ({ editorState, onImageUpload, onStateChange, onToolSelect }, ref) => {
 //     const canvasRef = useRef(null);
 //     const fileInputRef = useRef(null);
 //     const overlayImageInputRef = useRef(null);
 //     const containerRef = useRef(null);
 //     const textElementRefs = useRef({});
 //     const resizeTimeoutRef = useRef(null);
-//     const [textElements, setTextElements] = useState([]);
-//     const [overlayImages, setOverlayImages] = useState([]);
+//     const [textElements, setTextElements] = useState(
+//       editorState?.textElements || []
+//     );
+//     const [overlayImages, setOverlayImages] = useState(
+//       editorState?.overlayImages || []
+//     );
 //     const [selectedTextId, setSelectedTextId] = useState(null);
 //     const [selectedOverlayImageId, setSelectedOverlayImageId] = useState(null);
-//     const [cropState, setCropState] = useState({
-//       x: 0,
-//       y: 0,
-//       width: 0,
-//       height: 0,
-//       aspectRatio: null,
-//       rotation: 0,
-//       verticalPerspective: 0,
-//       horizontalPerspective: 0,
-//     });
-//     const initialAdjustments = {
-//       temperature: 0,
-//       tint: 0,
-//       brightness: 0,
-//       contrast: 0,
-//       highlights: 0,
-//       shadows: 0,
-//       whites: 0,
-//       blacks: 0,
-//       vibrance: 0,
-//       saturation: 0,
-//       sharpness: 0,
-//       clarity: 0,
-//       grayscale: 0,
-//       invert: false,
-//       sepia: 0,
-//     };
-//     const [adjustments, setAdjustments] = useState(initialAdjustments);
-//     const [colorAdjustments, setColorAdjustments] = useState({
-//       hue: 0,
-//       saturation: 0,
-//       brightness: 0,
-//     });
-//     const initialShadow = {
-//       offsetX: 0,
-//       offsetY: 0,
-//       blur: 0,
-//       color: "rgba(0,0,0,0)",
-//       opacity: 0,
-//       size: 0,
-//       thickness: 0,
-//       spread: 0,
-//     };
-//     const [shadow, setShadow] = useState(initialShadow);
-//     const [duotone, setDuotone] = useState(null);
+//     const [cropState, setCropState] = useState(
+//       editorState?.cropState || {
+//         x: 0,
+//         y: 0,
+//         width: 0,
+//         height: 0,
+//         aspectRatio: null,
+//         rotation: 0,
+//         verticalPerspective: 0,
+//         horizontalPerspective: 0,
+//       }
+//     );
+//     const [adjustments, setAdjustments] = useState(
+//       editorState?.adjustments || {
+//         temperature: 0,
+//         tint: 0,
+//         brightness: 0,
+//         contrast: 0,
+//         highlights: 0,
+//         shadows: 0,
+//         whites: 0,
+//         blacks: 0,
+//         vibrance: 0,
+//         saturation: 0,
+//         sharpness: 0,
+//         clarity: 0,
+//         grayscale: 0,
+//         invert: false,
+//         sepia: 0,
+//       }
+//     );
+//     const [colorAdjustments, setColorAdjustments] = useState(
+//       editorState?.colorAdjustments || {
+//         hue: 0,
+//         saturation: 0,
+//         brightness: 0,
+//       }
+//     );
+//     const [shadow, setShadow] = useState(
+//       editorState?.shadow || {
+//         offsetX: 0,
+//         offsetY: 0,
+//         blur: 0,
+//         color: "rgba(0,0,0,0)",
+//         opacity: 0,
+//         size: 0,
+//         thickness: 0,
+//         spread: 0,
+//       }
+//     );
+//     const [duotone, setDuotone] = useState(editorState?.duotone || null);
 //     const [renderTrigger, setRenderTrigger] = useState(0);
 //     const [toolbarVisible, setToolbarVisible] = useState(false);
+//     const [brushMode, setBrushMode] = useState(editorState?.brushMode || false);
+//     const [brushSettings, setBrushSettings] = useState(
+//       editorState?.brushSettings || {
+//         size: 1,
+//         intensity: 0,
+//         type: "blur",
+//       }
+//     );
 //     const isMountedRef = useRef(true);
-
-//     // Brush-related state
-//     const [brushMode, setBrushMode] = useState(false);
-//     const [brushSettings, setBrushSettings] = useState({
-//       size: 1,
-//       intensity: 0,
-//       type: "blur",
-//     });
+//     const blurMaskCanvasRef = useRef(document.createElement("canvas"));
+//     const blurMaskCtxRef = useRef(blurMaskCanvasRef.current.getContext("2d"));
 //     const [isDrawing, setIsDrawing] = useState(false);
 //     const [lastX, setLastX] = useState(0);
 //     const [lastY, setLastY] = useState(0);
-//     const blurMaskCanvasRef = useRef(document.createElement("canvas"));
-//     const blurMaskCtxRef = useRef(blurMaskCanvasRef.current.getContext("2d"));
-
-//     // Dragging state
 //     const [isDragging, setIsDragging] = useState(false);
 //     const dragDataRef = useRef(null);
+
+//     // Update state when editorState prop changes
+//     useEffect(() => {
+//       if (editorState) {
+//         setTextElements((prev) =>
+//           JSON.stringify(prev) !==
+//           JSON.stringify(editorState.textElements || [])
+//             ? editorState.textElements || []
+//             : prev
+//         );
+//         setOverlayImages((prev) =>
+//           JSON.stringify(prev) !==
+//           JSON.stringify(editorState.overlayImages || [])
+//             ? editorState.overlayImages || []
+//             : prev
+//         );
+//         setCropState((prev) =>
+//           JSON.stringify(prev) !==
+//           JSON.stringify(
+//             editorState.cropState || {
+//               x: 0,
+//               y: 0,
+//               width: 0,
+//               height: 0,
+//               aspectRatio: null,
+//               rotation: 0,
+//               verticalPerspective: 0,
+//               horizontalPerspective: 0,
+//             }
+//           )
+//             ? editorState.cropState || {
+//                 x: 0,
+//                 y: 0,
+//                 width: 0,
+//                 height: 0,
+//                 aspectRatio: null,
+//                 rotation: 0,
+//                 verticalPerspective: 0,
+//                 horizontalPerspective: 0,
+//               }
+//             : prev
+//         );
+//         setAdjustments((prev) =>
+//           JSON.stringify(prev) !==
+//           JSON.stringify(
+//             editorState.adjustments || {
+//               temperature: 0,
+//               tint: 0,
+//               brightness: 0,
+//               contrast: 0,
+//               highlights: 0,
+//               shadows: 0,
+//               whites: 0,
+//               blacks: 0,
+//               vibrance: 0,
+//               saturation: 0,
+//               sharpness: 0,
+//               clarity: 0,
+//               grayscale: 0,
+//               invert: false,
+//               sepia: 0,
+//             }
+//           )
+//             ? editorState.adjustments || {
+//                 temperature: 0,
+//                 tint: 0,
+//                 brightness: 0,
+//                 contrast: 0,
+//                 highlights: 0,
+//                 shadows: 0,
+//                 whites: 0,
+//                 blacks: 0,
+//                 vibrance: 0,
+//                 saturation: 0,
+//                 sharpness: 0,
+//                 clarity: 0,
+//                 grayscale: 0,
+//                 invert: false,
+//                 sepia: 0,
+//               }
+//             : prev
+//         );
+//         setColorAdjustments((prev) =>
+//           JSON.stringify(prev) !==
+//           JSON.stringify(
+//             editorState.colorAdjustments || {
+//               hue: 0,
+//               saturation: 0,
+//               brightness: 0,
+//             }
+//           )
+//             ? editorState.colorAdjustments || {
+//                 hue: 0,
+//                 saturation: 0,
+//                 brightness: 0,
+//               }
+//             : prev
+//         );
+//         setShadow((prev) =>
+//           JSON.stringify(prev) !==
+//           JSON.stringify(
+//             editorState.shadow || {
+//               offsetX: 0,
+//               offsetY: 0,
+//               blur: 0,
+//               color: "rgba(0,0,0,0)",
+//               opacity: 0,
+//               size: 0,
+//               thickness: 0,
+//               spread: 0,
+//             }
+//           )
+//             ? editorState.shadow || {
+//                 offsetX: 0,
+//                 offsetY: 0,
+//                 blur: 0,
+//                 color: "rgba(0,0,0,0)",
+//                 opacity: 0,
+//                 size: 0,
+//                 thickness: 0,
+//                 spread: 0,
+//               }
+//             : prev
+//         );
+//         setDuotone((prev) =>
+//           JSON.stringify(prev) !== JSON.stringify(editorState.duotone || null)
+//             ? editorState.duotone || null
+//             : prev
+//         );
+//         setBrushMode((prev) =>
+//           prev !== (editorState.brushMode || false)
+//             ? editorState.brushMode || false
+//             : prev
+//         );
+//         setBrushSettings((prev) =>
+//           JSON.stringify(prev) !==
+//           JSON.stringify(
+//             editorState.brushSettings || {
+//               size: 1,
+//               intensity: 0,
+//               type: "blur",
+//             }
+//           )
+//             ? editorState.brushSettings || {
+//                 size: 1,
+//                 intensity: 0,
+//                 type: "blur",
+//               }
+//             : prev
+//         );
+//         setRenderTrigger((prev) => prev + 1);
+//       }
+//     }, [editorState]);
+
+//     // Notify parent of state changes
+//     const notifyStateChange = useCallback(() => {
+//       if (!editorState?.selectedImage) return;
+//       const newState = {
+//         selectedImage: editorState.selectedImage,
+//         activeTool: editorState.activeTool,
+//         textElements,
+//         overlayImages,
+//         cropState,
+//         adjustments,
+//         colorAdjustments,
+//         shadow,
+//         duotone,
+//         brushMode,
+//         brushSettings,
+//       };
+//       setTimeout(() => {
+//         if (isMountedRef.current) {
+//           onStateChange(newState);
+//         }
+//       }, 0);
+//     }, [
+//       editorState?.selectedImage,
+//       editorState?.activeTool,
+//       textElements,
+//       overlayImages,
+//       cropState,
+//       adjustments,
+//       colorAdjustments,
+//       shadow,
+//       duotone,
+//       brushMode,
+//       brushSettings,
+//       onStateChange,
+//     ]);
 
 //     useEffect(() => {
 //       isMountedRef.current = true;
@@ -177,18 +374,26 @@
 //               console.warn("Overlay image with this ID already exists");
 //               return;
 //             }
-//             setOverlayImages((prev) => [
-//               ...prev,
-//               {
-//                 id,
-//                 src: imageUrl,
-//                 x: 50,
-//                 y: 50,
-//                 width: Math.min(img.width, 200),
-//                 height: Math.min(img.height, 200 * (img.height / img.width)),
-//                 opacity: 1,
-//               },
-//             ]);
+//             setOverlayImages((prev) => {
+//               const newOverlayImages = [
+//                 ...prev,
+//                 {
+//                   id,
+//                   src: imageUrl,
+//                   x: 50,
+//                   y: 50,
+//                   width: Math.min(img.width, 200),
+//                   height: Math.min(img.height, 200 * (img.height / img.width)),
+//                   opacity: 1,
+//                 },
+//               ];
+//               setTimeout(() => {
+//                 if (isMountedRef.current) {
+//                   notifyStateChange();
+//                 }
+//               }, 0);
+//               return newOverlayImages;
+//             });
 //             setSelectedOverlayImageId(id);
 //           };
 //           img.onerror = () => console.error("Error loading overlay image");
@@ -197,7 +402,7 @@
 //           console.error("Error reading overlay image file");
 //         reader.readAsDataURL(file);
 //       },
-//       [overlayImages]
+//       [overlayImages, notifyStateChange]
 //     );
 
 //     const handleDrop = useCallback(
@@ -206,14 +411,14 @@
 //         const files = Array.from(e.dataTransfer.files);
 //         const imageFile = files.find((file) => file.type.startsWith("image/"));
 //         if (imageFile) {
-//           if (selectedImage) {
+//           if (editorState?.selectedImage) {
 //             handleOverlayImageUpload(imageFile);
 //           } else {
 //             handleFileUpload(imageFile);
 //           }
 //         }
 //       },
-//       [handleFileUpload, handleOverlayImageUpload, selectedImage]
+//       [handleFileUpload, handleOverlayImageUpload, editorState?.selectedImage]
 //     );
 
 //     const handleDragOver = useCallback((e) => e.preventDefault(), []);
@@ -235,14 +440,14 @@
 //     );
 
 //     const drawCanvas = useCallback(() => {
-//       if (!canvasRef.current || !selectedImage) {
+//       if (!canvasRef.current || !editorState?.selectedImage) {
 //         console.warn("Canvas or selected image not available");
 //         return;
 //       }
 //       drawCanvasHelper(
 //         canvasRef.current,
-//         selectedImage,
-//         activeTool,
+//         editorState.selectedImage,
+//         editorState?.activeTool,
 //         cropState,
 //         adjustments,
 //         colorAdjustments,
@@ -255,14 +460,15 @@
 //         []
 //       );
 //     }, [
-//       selectedImage,
-//       activeTool,
+//       editorState?.selectedImage,
+//       editorState?.activeTool,
 //       cropState,
 //       adjustments,
 //       colorAdjustments,
 //       shadow,
 //       duotone,
 //       brushMode,
+//       brushSettings,
 //       textElements,
 //     ]);
 
@@ -278,13 +484,13 @@
 //           e,
 //           canvasRef.current,
 //           cropState,
-//           selectedImage,
+//           editorState?.selectedImage,
 //           setLastX,
 //           setLastY,
 //           isMountedRef
 //         );
 //       },
-//       [brushMode, cropState, selectedImage]
+//       [brushMode, cropState, editorState?.selectedImage]
 //     );
 
 //     const draw = useCallback(
@@ -294,7 +500,7 @@
 //           e,
 //           canvasRef.current,
 //           cropState,
-//           selectedImage,
+//           editorState?.selectedImage,
 //           brushSettings,
 //           blurMaskCtxRef.current,
 //           lastX,
@@ -304,23 +510,25 @@
 //           setRenderTrigger,
 //           isMountedRef
 //         );
+//         notifyStateChange();
 //       },
 //       [
 //         isDrawing,
 //         brushMode,
 //         cropState,
-//         selectedImage,
+//         editorState?.selectedImage,
 //         brushSettings,
 //         lastX,
 //         lastY,
+//         notifyStateChange,
 //       ]
 //     );
 
 //     const stopDrawing = useCallback(() => {
 //       setIsDrawing(false);
-//     }, []);
+//       notifyStateChange();
+//     }, [notifyStateChange]);
 
-//     // Centralized drag handler
 //     const startDrag = (e, id, type) => {
 //       e.stopPropagation();
 //       if (type === "overlay") {
@@ -357,7 +565,6 @@
 //       setIsDragging(true);
 //     };
 
-//     // Centralized resize handler
 //     const startResize = (e, id, type, direction) => {
 //       e.stopPropagation();
 //       if (type === "overlay") {
@@ -381,7 +588,6 @@
 //       const startHeight = element.height;
 //       const startLeft = element.x;
 //       const startTop = element.y;
-//       // const aspectRatio = element.width / element.height;
 
 //       dragDataRef.current = {
 //         id,
@@ -393,7 +599,6 @@
 //         startHeight,
 //         startLeft,
 //         startTop,
-//         // aspectRatio,
 //         hasMoved: false,
 //         action: "resize",
 //       };
@@ -401,7 +606,6 @@
 //       setIsDragging(true);
 //     };
 
-//     // Unified move handler
 //     const handleMove = throttle((moveEvent) => {
 //       if (!isDragging || !isMountedRef.current || !dragDataRef.current) return;
 
@@ -418,7 +622,6 @@
 //         startHeight,
 //         startLeft,
 //         startTop,
-//         aspectRatio,
 //       } = dragDataRef.current;
 
 //       const dx = moveEvent.clientX - startX;
@@ -438,13 +641,21 @@
 //         const newY = moveEvent.clientY - offsetY;
 
 //         if (type === "overlay") {
-//           setOverlayImages((prev) =>
-//             prev.map((el) => (el.id === id ? { ...el, x: newX, y: newY } : el))
-//           );
+//           setOverlayImages((prev) => {
+//             const newOverlayImages = prev.map((el) =>
+//               el.id === id ? { ...el, x: newX, y: newY } : el
+//             );
+//             notifyStateChange();
+//             return newOverlayImages;
+//           });
 //         } else if (type === "text") {
-//           setTextElements((prev) =>
-//             prev.map((el) => (el.id === id ? { ...el, x: newX, y: newY } : el))
-//           );
+//           setTextElements((prev) => {
+//             const newTextElements = prev.map((el) =>
+//               el.id === id ? { ...el, x: newX, y: newY } : el
+//             );
+//             notifyStateChange();
+//             return newTextElements;
+//           });
 //         }
 //       } else if (action === "resize") {
 //         let newWidth = startWidth;
@@ -455,7 +666,6 @@
 //         if (type === "overlay") {
 //           const minSize = 20;
 
-//           // Width-only resizers
 //           if (direction === "e") {
 //             newWidth = Math.max(minSize, startWidth + dx);
 //           }
@@ -463,8 +673,6 @@
 //             newWidth = Math.max(minSize, startWidth - dx);
 //             newX = startLeft + dx;
 //           }
-
-//           // Height-only resizers
 //           if (direction === "s") {
 //             newHeight = Math.max(minSize, startHeight + dy);
 //           }
@@ -472,8 +680,6 @@
 //             newHeight = Math.max(minSize, startHeight - dy);
 //             newY = startTop + dy;
 //           }
-
-//           // Diagonal resizers (stretch both)
 //           if (["ne", "se"].includes(direction)) {
 //             newWidth = Math.max(minSize, startWidth + dx);
 //           }
@@ -489,8 +695,8 @@
 //             newY = startTop + dy;
 //           }
 
-//           setOverlayImages((prev) =>
-//             prev.map((el) =>
+//           setOverlayImages((prev) => {
+//             const newOverlayImages = prev.map((el) =>
 //               el.id === id
 //                 ? {
 //                     ...el,
@@ -500,8 +706,10 @@
 //                     y: newY,
 //                   }
 //                 : el
-//             )
-//           );
+//             );
+//             notifyStateChange();
+//             return newOverlayImages;
+//           });
 //         } else if (type === "text") {
 //           if (["se", "nw", "ne", "sw"].includes(direction)) {
 //             const delta = Math.max(dx, dy);
@@ -524,8 +732,8 @@
 //             }
 //           }
 
-//           setTextElements((prev) =>
-//             prev.map((el) =>
+//           setTextElements((prev) => {
+//             const newTextElements = prev.map((el) =>
 //               el.id === id
 //                 ? {
 //                     ...el,
@@ -535,19 +743,21 @@
 //                     y: newY,
 //                   }
 //                 : el
-//             )
-//           );
+//             );
+//             notifyStateChange();
+//             return newTextElements;
+//           });
 //         }
 //       }
 //     }, 10);
 
-//     // Unified end handler
 //     const handleEnd = () => {
 //       setIsDragging(false);
 //       dragDataRef.current = null;
 //       window.removeEventListener("mousemove", handleMove);
 //       window.removeEventListener("mouseup", handleEnd);
 //       window.removeEventListener("blur", handleEnd);
+//       notifyStateChange();
 //     };
 
 //     useEffect(() => {
@@ -565,44 +775,131 @@
 
 //     useImperativeHandle(ref, () => ({
 //       getCanvas: () => canvasRef.current,
+//       restoreState: (state) => {
+//         if (!isMountedRef.current) return;
+//         setTextElements(state.textElements || []);
+//         setOverlayImages(state.overlayImages || []);
+//         setCropState(
+//           state.cropState || {
+//             x: 0,
+//             y: 0,
+//             width: 0,
+//             height: 0,
+//             aspectRatio: null,
+//             rotation: 0,
+//             verticalPerspective: 0,
+//             horizontalPerspective: 0,
+//           }
+//         );
+//         setAdjustments(
+//           state.adjustments || {
+//             temperature: 0,
+//             tint: 0,
+//             brightness: 0,
+//             contrast: 0,
+//             highlights: 0,
+//             shadows: 0,
+//             whites: 0,
+//             blacks: 0,
+//             vibrance: 0,
+//             saturation: 0,
+//             sharpness: 0,
+//             clarity: 0,
+//             grayscale: 0,
+//             invert: false,
+//             sepia: 0,
+//           }
+//         );
+//         setColorAdjustments(
+//           state.colorAdjustments || {
+//             hue: 0,
+//             saturation: 0,
+//             brightness: 0,
+//           }
+//         );
+//         setShadow(
+//           state.shadow || {
+//             offsetX: 0,
+//             offsetY: 0,
+//             blur: 0,
+//             color: "rgba(0,0,0,0)",
+//             opacity: 0,
+//             size: 0,
+//             thickness: 0,
+//             spread: 0,
+//           }
+//         );
+//         setDuotone(state.duotone || null);
+//         setBrushMode(state.brushMode || false);
+//         setBrushSettings(
+//           state.brushSettings || {
+//             size: 1,
+//             intensity: 0,
+//             type: "blur",
+//           }
+//         );
+//         setRenderTrigger((prev) => prev + 1);
+//       },
+
+//       getCurrentState: () => ({
+//         selectedImage: editorState.selectedImage,
+//         activeTool: editorState.activeTool,
+//         textElements,
+//         overlayImages,
+//         cropState,
+//         adjustments,
+//         colorAdjustments,
+//         shadow,
+//         duotone,
+//         brushMode,
+//         brushSettings,
+//       }),
 //       addText: ({
 //         text,
 //         style,
 //         font,
 //         color,
 //         opacity,
+//         fontSize,
 //         fontWeight,
 //         fontStyle,
 //         textDecoration,
 //       }) => {
 //         if (!isMountedRef.current) return;
 //         const id = Date.now();
-//         const fontSize =
-//           style === "h1" ? "32px" : style === "h2" ? "24px" : "20px";
-//         const numericSize = parseInt(fontSize);
+//         const resolvedFontSize =
+//           fontSize ||
+//           (style === "h1" ? "32px" : style === "h2" ? "24px" : "20px");
+
+//         const numericSize = parseInt(resolvedFontSize);
 //         const defaultWidth = numericSize * 10;
 //         const defaultHeight = numericSize * 2;
 
-//         setTextElements((prev) => [
-//           ...prev,
-//           {
-//             id,
-//             text: text || "",
-//             x: 50,
-//             y: 50,
-//             fontSize,
-//             fontFamily: font,
-//             color,
-//             opacity: opacity || 1,
-//             fontWeight: fontWeight || "normal",
-//             fontStyle: fontStyle || "normal",
-//             textDecoration: textDecoration || "none",
-//             width: defaultWidth,
-//             height: defaultHeight,
-//           },
-//         ]);
+//         setTextElements((prev) => {
+//           const newTextElements = [
+//             ...prev,
+//             {
+//               id,
+//               text: text || "",
+//               x: 50,
+//               y: 50,
+//               fontSize: resolvedFontSize,
+//               fontFamily: font,
+//               color,
+//               opacity: opacity || 1,
+//               fontWeight: fontWeight || "normal",
+//               fontStyle: fontStyle || "normal",
+//               textDecoration: textDecoration || "none",
+//               width: defaultWidth,
+//               height: defaultHeight,
+//             },
+//           ];
+//           notifyStateChange();
+//           return newTextElements;
+//         });
 //         setSelectedTextId(id);
 //       },
+
 //       addOverlayImage: () => {
 //         if (overlayImages.length >= MAX_OVERLAY_IMAGES) {
 //           console.error("Maximum number of overlay images reached");
@@ -610,29 +907,42 @@
 //         }
 //         overlayImageInputRef.current?.click();
 //       },
-
-//       // Inside useImperativeHandle
 //       updateSelectedText: (props) => {
 //         if (!isMountedRef.current) return;
 
-//         // Apply font styles immediately
-//         setTextElements((prev) =>
-//           prev.map((el) =>
-//             el.id === selectedTextId ? { ...el, ...props } : el
-//           )
-//         );
+//         // 1. Immediate estimated size update for fast visual sync
+//         setTextElements((prev) => {
+//           const newTextElements = prev.map((el) => {
+//             if (el.id !== selectedTextId) return el;
 
-//         // Cancel pending resize
+//             const fontSizePx = parseInt(
+//               props.fontSize || el.fontSize || "20",
+//               10
+//             );
+//             const text = props.text || el.text || "";
+//             const fallbackWidth = fontSizePx * Math.max(text.length * 0.6, 5);
+
+//             return {
+//               ...el,
+//               ...props,
+//               width: fallbackWidth,
+//               height: fontSizePx * 1.6,
+//             };
+//           });
+
+//           notifyStateChange();
+//           return newTextElements;
+//         });
+
+//         // 2. Optional fine-tuning using actual DOM measurements
 //         if (resizeTimeoutRef.current) {
 //           clearTimeout(resizeTimeoutRef.current);
 //         }
 
-//         // Debounce to avoid over-triggering during rapid input
 //         resizeTimeoutRef.current = setTimeout(() => {
 //           const node = textElementRefs.current[selectedTextId];
 //           if (!node) return;
 
-//           // Apply styles for layout update
 //           if (props.fontSize) node.style.fontSize = props.fontSize;
 //           if (props.fontFamily) node.style.fontFamily = props.fontFamily;
 //           if (props.fontWeight) node.style.fontWeight = props.fontWeight;
@@ -640,14 +950,11 @@
 //           if (props.textDecoration)
 //             node.style.textDecoration = props.textDecoration;
 
-//           // Reset size to auto for accurate measurement
 //           node.style.width = "auto";
 //           node.style.height = "auto";
 
-//           // Force reflow
 //           void node.offsetWidth;
 
-//           // 🪄 Wait two frames for accurate layout
 //           requestAnimationFrame(() => {
 //             requestAnimationFrame(() => {
 //               const text = node.innerText || "";
@@ -657,9 +964,8 @@
 //               const newWidth = Math.max(node.scrollWidth + 8, fallbackWidth);
 //               const newHeight = node.scrollHeight;
 
-//               // ✅ Apply both together — this prevents mismatch
-//               setTextElements((prev) =>
-//                 prev.map((el) =>
+//               setTextElements((prev) => {
+//                 const newTextElements = prev.map((el) =>
 //                   el.id === selectedTextId
 //                     ? {
 //                         ...el,
@@ -667,11 +973,13 @@
 //                         height: newHeight,
 //                       }
 //                     : el
-//                 )
-//               );
+//                 );
+//                 notifyStateChange();
+//                 return newTextElements;
+//               });
 //             });
 //           });
-//         }, 60); // small debounce helps performance
+//         }, 60);
 //       },
 
 //       applyCrop: ({ aspectRatio, reset = false }) => {
@@ -685,7 +993,11 @@
 //         };
 
 //         if (reset) {
-//           setCropState((prev) => ({ ...prev, ...newCrop, aspectRatio: null }));
+//           setCropState((prev) => {
+//             const newCropState = { ...prev, ...newCrop, aspectRatio: null };
+//             notifyStateChange();
+//             return newCropState;
+//           });
 //           return;
 //         }
 
@@ -711,11 +1023,15 @@
 //           };
 //         } else if (aspectRatio === "original") {
 //           const img = new Image();
-//           img.src = selectedImage;
+//           img.src = editorState?.selectedImage;
 //           img.onload = () => {
 //             if (!isMountedRef.current) return;
 //             newCrop.aspectRatio = img.width / img.height;
-//             setCropState((prev) => ({ ...prev, ...newCrop }));
+//             setCropState((prev) => {
+//               const newCropState = { ...prev, ...newCrop };
+//               notifyStateChange();
+//               return newCropState;
+//             });
 //           };
 //           img.onerror = () => console.error("Error loading image for crop");
 //           return;
@@ -723,42 +1039,90 @@
 //           newCrop.aspectRatio = null;
 //         }
 
-//         setCropState((prev) => ({ ...prev, ...newCrop }));
+//         setCropState((prev) => {
+//           const newCropState = { ...prev, ...newCrop };
+//           notifyStateChange();
+//           return newCropState;
+//         });
 //       },
 //       applyRotation: (rotation) => {
 //         if (!isMountedRef.current) return;
-//         setCropState((prev) => ({ ...prev, rotation }));
+//         setCropState((prev) => {
+//           const newCropState = { ...prev, rotation };
+//           notifyStateChange();
+//           return newCropState;
+//         });
 //       },
 //       applyPerspective: ({ vertical, horizontal }) => {
 //         if (!isMountedRef.current) return;
-//         setCropState((prev) => ({
-//           ...prev,
-//           verticalPerspective: vertical,
-//           horizontalPerspective: horizontal,
-//         }));
+//         setCropState((prev) => {
+//           const newCropState = {
+//             ...prev,
+//             verticalPerspective: vertical,
+//             horizontalPerspective: horizontal,
+//           };
+//           notifyStateChange();
+//           return newCropState;
+//         });
 //       },
 //       applyAdjustments: (newAdjustments) => {
 //         if (!isMountedRef.current) return;
-//         setAdjustments((prev) => ({
-//           ...initialAdjustments,
-//           ...newAdjustments,
-//         }));
+//         setAdjustments((prev) => {
+//           const newAdjustmentsState = {
+//             temperature: 0,
+//             tint: 0,
+//             brightness: 0,
+//             contrast: 0,
+//             highlights: 0,
+//             shadows: 0,
+//             whites: 0,
+//             blacks: 0,
+//             vibrance: 0,
+//             saturation: 0,
+//             sharpness: 0,
+//             clarity: 0,
+//             grayscale: 0,
+//             invert: false,
+//             sepia: 0,
+//             ...newAdjustments,
+//           };
+//           notifyStateChange();
+//           return newAdjustmentsState;
+//         });
 //         setRenderTrigger((prev) => prev + 1);
 //       },
 //       applyColorAdjustments: (newColorAdjustments) => {
 //         if (!isMountedRef.current) return;
-//         setColorAdjustments((prev) => ({
-//           hue: 0,
-//           saturation: 0,
-//           brightness: 0,
-//           ...newColorAdjustments,
-//         }));
+//         setColorAdjustments((prev) => {
+//           const newColorAdjustmentsState = {
+//             hue: 0,
+//             saturation: 0,
+//             brightness: 0,
+//             ...newColorAdjustments,
+//           };
+//           notifyStateChange();
+//           return newColorAdjustmentsState;
+//         });
 //         setRenderTrigger((prev) => prev + 1);
 //       },
 //       applyFilter: ({ adjustments, colorAdjustments, duotone }) => {
 //         if (!isMountedRef.current) return;
 //         setAdjustments({
-//           ...initialAdjustments,
+//           temperature: 0,
+//           tint: 0,
+//           brightness: 0,
+//           contrast: 0,
+//           highlights: 0,
+//           shadows: 0,
+//           whites: 0,
+//           blacks: 0,
+//           vibrance: 0,
+//           saturation: 0,
+//           sharpness: 0,
+//           clarity: 0,
+//           grayscale: 0,
+//           invert: false,
+//           sepia: 0,
 //           ...adjustments,
 //         });
 //         setColorAdjustments({
@@ -769,14 +1133,23 @@
 //         });
 //         setDuotone(duotone || null);
 //         setRenderTrigger((prev) => prev + 1);
+//         notifyStateChange();
 //       },
 //       applyShadow: (shadowProps) => {
 //         if (!isMountedRef.current) return;
 //         setShadow({
-//           ...initialShadow,
+//           offsetX: 0,
+//           offsetY: 0,
+//           blur: 0,
+//           color: "rgba(0,0,0,0)",
+//           opacity: 0,
+//           size: 0,
+//           thickness: 0,
+//           spread: 0,
 //           ...shadowProps,
 //         });
 //         setRenderTrigger((prev) => prev + 1);
+//         notifyStateChange();
 //       },
 //       finalizeCrop: () => {
 //         if (!canvasRef.current || !cropState.width || !cropState.height) {
@@ -862,20 +1235,33 @@
 //             ctx.drawImage(tempCanvas, 0, 0);
 
 //             const newImageUrl = canvas.toDataURL();
+//             const newState = {
+//               selectedImage: newImageUrl,
+//               activeTool: editorState?.activeTool,
+//               textElements: [],
+//               overlayImages: [],
+//               cropState: {
+//                 x: 0,
+//                 y: 0,
+//                 width: 0,
+//                 height: 0,
+//                 aspectRatio: null,
+//                 rotation: 0,
+//                 verticalPerspective: 0,
+//                 horizontalPerspective: 0,
+//               },
+//               adjustments,
+//               colorAdjustments,
+//               shadow,
+//               duotone,
+//               brushMode,
+//               brushSettings,
+//             };
 //             onImageUpload(newImageUrl);
-
-//             setCropState({
-//               x: 0,
-//               y: 0,
-//               width: 0,
-//               height: 0,
-//               aspectRatio: null,
-//               rotation: 0,
-//               verticalPerspective: 0,
-//               horizontalPerspective: 0,
-//             });
 //             setOverlayImages([]);
 //             setTextElements([]);
+//             setCropState(newState.cropState);
+//             notifyStateChange();
 
 //             blurMaskCanvasRef.current.width = cropState.width;
 //             blurMaskCanvasRef.current.height = cropState.height;
@@ -889,7 +1275,7 @@
 //           });
 //         };
 //         img.onerror = () => console.error("Error loading image for crop");
-//         img.src = selectedImage;
+//         img.src = editorState?.selectedImage;
 //       },
 //       enableBrushMode: (settings) => {
 //         if (!isMountedRef.current) return;
@@ -898,10 +1284,12 @@
 //         if (canvasRef.current) {
 //           canvasRef.current.style.cursor = "crosshair";
 //         }
+//         notifyStateChange();
 //       },
 //       updateBrushSettings: (settings) => {
 //         if (!isMountedRef.current) return;
 //         setBrushSettings(settings);
+//         notifyStateChange();
 //       },
 //       disableBrushMode: () => {
 //         if (!isMountedRef.current) return;
@@ -909,6 +1297,7 @@
 //         if (canvasRef.current) {
 //           canvasRef.current.style.cursor = "default";
 //         }
+//         notifyStateChange();
 //       },
 //       resetBrush: () => {
 //         if (!isMountedRef.current || !blurMaskCanvasRef.current) return;
@@ -926,44 +1315,35 @@
 //           blurMaskCanvasRef.current.height
 //         );
 //         setRenderTrigger((prev) => prev + 1);
+//         notifyStateChange();
 //       },
 //       downloadImage: () => {
-//         if (!selectedImage || !canvasRef.current) return;
+//         if (!editorState?.selectedImage || !canvasRef.current) return;
 
 //         const canvas = document.createElement("canvas");
 //         const ctx = canvas.getContext("2d");
 //         if (!ctx) return;
 
-//         // Use the editor canvas's internal dimensions (not the visible size)
 //         const editorCanvas = canvasRef.current;
 //         canvas.width = editorCanvas.width;
 //         canvas.height = editorCanvas.height;
 
-//         // Calculate scaling factors based on visible size vs internal size
 //         const canvasRect = editorCanvas.getBoundingClientRect();
 //         const scaleX = editorCanvas.width / canvasRect.width;
 //         const scaleY = editorCanvas.height / canvasRect.height;
 
-//         // Clear the canvas
 //         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 //         const baseImage = new Image();
 //         baseImage.onload = () => {
-//           // Save the context state to apply transformations for the base image
 //           ctx.save();
-
-//           // Apply transformations for the base image
 //           ctx.translate(canvas.width / 2, canvas.height / 2);
 //           ctx.rotate((cropState.rotation * Math.PI) / 180);
 //           const vScale = 1 + cropState.verticalPerspective / 100;
 //           const hScale = 1 + cropState.horizontalPerspective / 100;
 //           ctx.scale(hScale, vScale);
 //           ctx.translate(-canvas.width / 2, -canvas.height / 2);
-
-//           // Draw the base image to match the editor canvas dimensions
 //           ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
-
-//           // Apply adjustments
 //           applyAdjustmentsToContext(
 //             ctx,
 //             baseImage,
@@ -974,22 +1354,8 @@
 //             blurMaskCanvasRef.current,
 //             brushSettings
 //           );
-
-//           // Restore the context to remove transformations for overlay images and text
 //           ctx.restore();
 
-//           // Log the state for debugging
-//           console.log("Overlay images during download:", overlayImages);
-//           console.log("Text elements during download:", textElements);
-//           console.log("Canvas dimensions:", canvas.width, canvas.height);
-//           console.log(
-//             "Visible dimensions:",
-//             canvasRect.width,
-//             canvasRect.height
-//           );
-//           console.log("Scaling factors:", scaleX, scaleY);
-
-//           // Draw overlay images, scaling their positions and sizes
 //           const overlayPromises = overlayImages.map((overlay) => {
 //             return new Promise((resolve) => {
 //               const img = new Image();
@@ -1011,7 +1377,6 @@
 //             });
 //           });
 
-//           // Draw text elements, scaling their positions and font size
 //           Promise.all(overlayPromises).then(() => {
 //             textElements.forEach((el) => {
 //               const scaledFontSize = parseInt(el.fontSize) * scaleY;
@@ -1025,7 +1390,6 @@
 //               ctx.globalAlpha = 1;
 //             });
 
-//             // Download the image
 //             setTimeout(() => {
 //               const link = document.createElement("a");
 //               link.download = "edited-image.png";
@@ -1037,7 +1401,7 @@
 
 //         baseImage.onerror = () =>
 //           console.error("Error loading base image for download");
-//         baseImage.src = selectedImage;
+//         baseImage.src = editorState?.selectedImage;
 //       },
 //     }));
 
@@ -1073,30 +1437,42 @@
 //       }
 //     };
 
-//     const handleTextInput = useCallback((id, text) => {
-//       const normalizedText = text.normalize();
-//       console.log(`Input text for ID ${id}: ${normalizedText}`);
-//       setTextElements((prev) =>
-//         prev.map((item) =>
-//           item.id === id ? { ...item, text: normalizedText } : item
-//         )
-//       );
-//     }, []);
+//     const handleTextInput = useCallback(
+//       (id, text) => {
+//         const normalizedText = text.normalize();
+//         setTextElements((prev) => {
+//           const newTextElements = prev.map((item) =>
+//             item.id === id ? { ...item, text: normalizedText } : item
+//           );
+//           notifyStateChange();
+//           return newTextElements;
+//         });
+//       },
+//       [notifyStateChange]
+//     );
 
 //     useEffect(() => {
 //       const handleKeyDown = (e) => {
 //         if (e.key === "Delete") {
 //           if (selectedTextId !== null) {
-//             setTextElements((prev) =>
-//               prev.filter((el) => el.id !== selectedTextId)
-//             );
+//             setTextElements((prev) => {
+//               const newTextElements = prev.filter(
+//                 (el) => el.id !== selectedTextId
+//               );
+//               notifyStateChange();
+//               return newTextElements;
+//             });
 //             setSelectedTextId(null);
 //             e.preventDefault();
 //             e.stopPropagation();
 //           } else if (selectedOverlayImageId !== null) {
-//             setOverlayImages((prev) =>
-//               prev.filter((el) => el.id !== selectedOverlayImageId)
-//             );
+//             setOverlayImages((prev) => {
+//               const newOverlayImages = prev.filter(
+//                 (el) => el.id !== selectedOverlayImageId
+//               );
+//               notifyStateChange();
+//               return newOverlayImages;
+//             });
 //             setSelectedOverlayImageId(null);
 //             e.preventDefault();
 //             e.stopPropagation();
@@ -1106,9 +1482,9 @@
 
 //       document.addEventListener("keydown", handleKeyDown);
 //       return () => document.removeEventListener("keydown", handleKeyDown);
-//     }, [selectedTextId, selectedOverlayImageId]);
+//     }, [selectedTextId, selectedOverlayImageId, notifyStateChange]);
 
-//     if (!selectedImage) {
+//     if (!editorState?.selectedImage) {
 //       return (
 //         <div className="image-editor">
 //           <div
@@ -1205,8 +1581,7 @@
 //                   whiteSpace: "nowrap",
 //                   overflow: "hidden",
 //                   textOverflow: "ellipsis",
-
-//                   minWidth: 40, // just a safeguard
+//                   minWidth: 40,
 //                 }}
 //                 draggable={false}
 //                 ref={(node) => {
@@ -1231,24 +1606,29 @@
 //                   const text = e.target.innerText;
 //                   handleTextInput(el.id, text);
 
-//                   // 🪄 Auto-resize height based on scrollHeight
 //                   const currentNode = textElementRefs.current[el.id];
 //                   if (currentNode) {
 //                     const newHeight = currentNode.scrollHeight;
-//                     setTextElements((prev) =>
-//                       prev.map((item) =>
+//                     setTextElements((prev) => {
+//                       const newTextElements = prev.map((item) =>
 //                         item.id === el.id
 //                           ? { ...item, height: newHeight }
 //                           : item
-//                       )
-//                     );
+//                       );
+//                       notifyStateChange();
+//                       return newTextElements;
+//                     });
 //                   }
 //                 }}
 //                 onKeyDown={(e) => {
 //                   if (e.key === "Delete") {
-//                     setTextElements((prev) =>
-//                       prev.filter((item) => item.id !== el.id)
-//                     );
+//                     setTextElements((prev) => {
+//                       const newTextElements = prev.filter(
+//                         (item) => item.id !== el.id
+//                       );
+//                       notifyStateChange();
+//                       return newTextElements;
+//                     });
 //                     setSelectedTextId(null);
 //                     e.preventDefault();
 //                     e.stopPropagation();
@@ -1260,7 +1640,7 @@
 //                   className="text-move-handle"
 //                   onMouseDown={(e) => startDrag(e, el.id, "text")}
 //                 >
-//                   <span className="move-icon">↕ Move</span>
+//                   <span className="move-icon">↔ Move</span>
 //                 </div>
 //               )}
 //             </div>
@@ -1369,37 +1749,45 @@ const ImageEditor = forwardRef(
     const containerRef = useRef(null);
     const textElementRefs = useRef({});
     const resizeTimeoutRef = useRef(null);
-    const [textElements, setTextElements] = useState(editorState?.textElements || []);
-    const [overlayImages, setOverlayImages] = useState(editorState?.overlayImages || []);
+    const [textElements, setTextElements] = useState(
+      editorState?.textElements || []
+    );
+    const [overlayImages, setOverlayImages] = useState(
+      editorState?.overlayImages || []
+    );
     const [selectedTextId, setSelectedTextId] = useState(null);
     const [selectedOverlayImageId, setSelectedOverlayImageId] = useState(null);
-    const [cropState, setCropState] = useState(editorState?.cropState || {
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-      aspectRatio: null,
-      rotation: 0,
-      verticalPerspective: 0,
-      horizontalPerspective: 0,
-    });
-    const [adjustments, setAdjustments] = useState(editorState?.adjustments || {
-      temperature: 0,
-      tint: 0,
-      brightness: 0,
-      contrast: 0,
-      highlights: 0,
-      shadows: 0,
-      whites: 0,
-      blacks: 0,
-      vibrance: 0,
-      saturation: 0,
-      sharpness: 0,
-      clarity: 0,
-      grayscale: 0,
-      invert: false,
-      sepia: 0,
-    });
+    const [cropState, setCropState] = useState(
+      editorState?.cropState || {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        aspectRatio: null,
+        rotation: 0,
+        verticalPerspective: 0,
+        horizontalPerspective: 0,
+      }
+    );
+    const [adjustments, setAdjustments] = useState(
+      editorState?.adjustments || {
+        temperature: 0,
+        tint: 0,
+        brightness: 0,
+        contrast: 0,
+        highlights: 0,
+        shadows: 0,
+        whites: 0,
+        blacks: 0,
+        vibrance: 0,
+        saturation: 0,
+        sharpness: 0,
+        clarity: 0,
+        grayscale: 0,
+        invert: false,
+        sepia: 0,
+      }
+    );
     const [colorAdjustments, setColorAdjustments] = useState(
       editorState?.colorAdjustments || {
         hue: 0,
@@ -1407,16 +1795,18 @@ const ImageEditor = forwardRef(
         brightness: 0,
       }
     );
-    const [shadow, setShadow] = useState(editorState?.shadow || {
-      offsetX: 0,
-      offsetY: 0,
-      blur: 0,
-      color: "rgba(0,0,0,0)",
-      opacity: 0,
-      size: 0,
-      thickness: 0,
-      spread: 0,
-    });
+    const [shadow, setShadow] = useState(
+      editorState?.shadow || {
+        offsetX: 0,
+        offsetY: 0,
+        blur: 0,
+        color: "rgba(0,0,0,0)",
+        opacity: 0,
+        size: 0,
+        thickness: 0,
+        spread: 0,
+      }
+    );
     const [duotone, setDuotone] = useState(editorState?.duotone || null);
     const [renderTrigger, setRenderTrigger] = useState(0);
     const [toolbarVisible, setToolbarVisible] = useState(false);
@@ -1440,57 +1830,152 @@ const ImageEditor = forwardRef(
     // Update state when editorState prop changes
     useEffect(() => {
       if (editorState) {
-        setTextElements(editorState.textElements || []);
-        setOverlayImages(editorState.overlayImages || []);
-        setCropState(editorState.cropState || {
-          x: 0,
-          y: 0,
-          width: 0,
-          height: 0,
-          aspectRatio: null,
-          rotation: 0,
-          verticalPerspective: 0,
-          horizontalPerspective: 0,
-        });
-        setAdjustments(editorState.adjustments || {
-          temperature: 0,
-          tint: 0,
-          brightness: 0,
-          contrast: 0,
-          highlights: 0,
-          shadows: 0,
-          whites: 0,
-          blacks: 0,
-          vibrance: 0,
-          saturation: 0,
-          sharpness: 0,
-          clarity: 0,
-          grayscale: 0,
-          invert: false,
-          sepia: 0,
-        });
-        setColorAdjustments(editorState.colorAdjustments || {
-          hue: 0,
-          saturation: 0,
-          brightness: 0,
-        });
-        setShadow(editorState.shadow || {
-          offsetX: 0,
-          offsetY: 0,
-          blur: 0,
-          color: "rgba(0,0,0,0)",
-          opacity: 0,
-          size: 0,
-          thickness: 0,
-          spread: 0,
-        });
-        setDuotone(editorState.duotone || null);
-        setBrushMode(editorState.brushMode || false);
-        setBrushSettings(editorState.brushSettings || {
-          size: 1,
-          intensity: 0,
-          type: "blur",
-        });
+        setTextElements((prev) =>
+          JSON.stringify(prev) !==
+          JSON.stringify(editorState.textElements || [])
+            ? editorState.textElements || []
+            : prev
+        );
+        setOverlayImages((prev) =>
+          JSON.stringify(prev) !==
+          JSON.stringify(editorState.overlayImages || [])
+            ? editorState.overlayImages || []
+            : prev
+        );
+        setCropState((prev) =>
+          JSON.stringify(prev) !==
+          JSON.stringify(
+            editorState.cropState || {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              aspectRatio: null,
+              rotation: 0,
+              verticalPerspective: 0,
+              horizontalPerspective: 0,
+            }
+          )
+            ? editorState.cropState || {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                aspectRatio: null,
+                rotation: 0,
+                verticalPerspective: 0,
+                horizontalPerspective: 0,
+              }
+            : prev
+        );
+        setAdjustments((prev) =>
+          JSON.stringify(prev) !==
+          JSON.stringify(
+            editorState.adjustments || {
+              temperature: 0,
+              tint: 0,
+              brightness: 0,
+              contrast: 0,
+              highlights: 0,
+              shadows: 0,
+              whites: 0,
+              blacks: 0,
+              vibrance: 0,
+              saturation: 0,
+              sharpness: 0,
+              clarity: 0,
+              grayscale: 0,
+              invert: false,
+              sepia: 0,
+            }
+          )
+            ? editorState.adjustments || {
+                temperature: 0,
+                tint: 0,
+                brightness: 0,
+                contrast: 0,
+                highlights: 0,
+                shadows: 0,
+                whites: 0,
+                blacks: 0,
+                vibrance: 0,
+                saturation: 0,
+                sharpness: 0,
+                clarity: 0,
+                grayscale: 0,
+                invert: false,
+                sepia: 0,
+              }
+            : prev
+        );
+        setColorAdjustments((prev) =>
+          JSON.stringify(prev) !==
+          JSON.stringify(
+            editorState.colorAdjustments || {
+              hue: 0,
+              saturation: 0,
+              brightness: 0,
+            }
+          )
+            ? editorState.colorAdjustments || {
+                hue: 0,
+                saturation: 0,
+                brightness: 0,
+              }
+            : prev
+        );
+        setShadow((prev) =>
+          JSON.stringify(prev) !==
+          JSON.stringify(
+            editorState.shadow || {
+              offsetX: 0,
+              offsetY: 0,
+              blur: 0,
+              color: "rgba(0,0,0,0)",
+              opacity: 0,
+              size: 0,
+              thickness: 0,
+              spread: 0,
+            }
+          )
+            ? editorState.shadow || {
+                offsetX: 0,
+                offsetY: 0,
+                blur: 0,
+                color: "rgba(0,0,0,0)",
+                opacity: 0,
+                size: 0,
+                thickness: 0,
+                spread: 0,
+              }
+            : prev
+        );
+        setDuotone((prev) =>
+          JSON.stringify(prev) !== JSON.stringify(editorState.duotone || null)
+            ? editorState.duotone || null
+            : prev
+        );
+        setBrushMode((prev) =>
+          prev !== (editorState.brushMode || false)
+            ? editorState.brushMode || false
+            : prev
+        );
+        setBrushSettings((prev) =>
+          JSON.stringify(prev) !==
+          JSON.stringify(
+            editorState.brushSettings || {
+              size: 1,
+              intensity: 0,
+              type: "blur",
+            }
+          )
+            ? editorState.brushSettings || {
+                size: 1,
+                intensity: 0,
+                type: "blur",
+              }
+            : prev
+        );
         setRenderTrigger((prev) => prev + 1);
       }
     }, [editorState]);
@@ -1511,7 +1996,11 @@ const ImageEditor = forwardRef(
         brushMode,
         brushSettings,
       };
-      onStateChange(newState);
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          onStateChange(newState);
+        }
+      }, 0);
     }, [
       editorState?.selectedImage,
       editorState?.activeTool,
@@ -1607,10 +2096,28 @@ const ImageEditor = forwardRef(
                   opacity: 1,
                 },
               ];
-              notifyStateChange();
+              const newState = {
+                selectedImage: editorState.selectedImage,
+                activeTool: editorState.activeTool,
+                textElements,
+                overlayImages: newOverlayImages,
+                cropState,
+                adjustments,
+                colorAdjustments,
+                shadow,
+                duotone,
+                brushMode,
+                brushSettings,
+              };
+              setTimeout(() => {
+                if (isMountedRef.current) {
+                  onStateChange(newState);
+                }
+              }, 0);
               return newOverlayImages;
             });
             setSelectedOverlayImageId(id);
+            setSelectedTextId(null);
           };
           img.onerror = () => console.error("Error loading overlay image");
         };
@@ -1618,7 +2125,20 @@ const ImageEditor = forwardRef(
           console.error("Error reading overlay image file");
         reader.readAsDataURL(file);
       },
-      [overlayImages, notifyStateChange]
+      [
+        overlayImages,
+        editorState?.selectedImage,
+        editorState?.activeTool,
+        textElements,
+        cropState,
+        adjustments,
+        colorAdjustments,
+        shadow,
+        duotone,
+        brushMode,
+        brushSettings,
+        onStateChange,
+      ]
     );
 
     const handleDrop = useCallback(
@@ -1673,7 +2193,7 @@ const ImageEditor = forwardRef(
         blurMaskCanvasRef.current,
         blurMaskCtxRef.current,
         brushSettings,
-        textElements
+        []
       );
     }, [
       editorState?.selectedImage,
@@ -1995,72 +2515,99 @@ const ImageEditor = forwardRef(
         if (!isMountedRef.current) return;
         setTextElements(state.textElements || []);
         setOverlayImages(state.overlayImages || []);
-        setCropState(state.cropState || {
-          x: 0,
-          y: 0,
-          width: 0,
-          height: 0,
-          aspectRatio: null,
-          rotation: 0,
-          verticalPerspective: 0,
-          horizontalPerspective: 0,
-        });
-        setAdjustments(state.adjustments || {
-          temperature: 0,
-          tint: 0,
-          brightness: 0,
-          contrast: 0,
-          highlights: 0,
-          shadows: 0,
-          whites: 0,
-          blacks: 0,
-          vibrance: 0,
-          saturation: 0,
-          sharpness: 0,
-          clarity: 0,
-          grayscale: 0,
-          invert: false,
-          sepia: 0,
-        });
-        setColorAdjustments(state.colorAdjustments || {
-          hue: 0,
-          saturation: 0,
-          brightness: 0,
-        });
-        setShadow(state.shadow || {
-          offsetX: 0,
-          offsetY: 0,
-          blur: 0,
-          color: "rgba(0,0,0,0)",
-          opacity: 0,
-          size: 0,
-          thickness: 0,
-          spread: 0,
-        });
+        setCropState(
+          state.cropState || {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            aspectRatio: null,
+            rotation: 0,
+            verticalPerspective: 0,
+            horizontalPerspective: 0,
+          }
+        );
+        setAdjustments(
+          state.adjustments || {
+            temperature: 0,
+            tint: 0,
+            brightness: 0,
+            contrast: 0,
+            highlights: 0,
+            shadows: 0,
+            whites: 0,
+            blacks: 0,
+            vibrance: 0,
+            saturation: 0,
+            sharpness: 0,
+            clarity: 0,
+            grayscale: 0,
+            invert: false,
+            sepia: 0,
+          }
+        );
+        setColorAdjustments(
+          state.colorAdjustments || {
+            hue: 0,
+            saturation: 0,
+            brightness: 0,
+          }
+        );
+        setShadow(
+          state.shadow || {
+            offsetX: 0,
+            offsetY: 0,
+            blur: 0,
+            color: "rgba(0,0,0,0)",
+            opacity: 0,
+            size: 0,
+            thickness: 0,
+            spread: 0,
+          }
+        );
         setDuotone(state.duotone || null);
         setBrushMode(state.brushMode || false);
-        setBrushSettings(state.brushSettings || {
-          size: 1,
-          intensity: 0,
-          type: "blur",
-        });
+        setBrushSettings(
+          state.brushSettings || {
+            size: 1,
+            intensity: 0,
+            type: "blur",
+          }
+        );
         setRenderTrigger((prev) => prev + 1);
       },
+
+      getCurrentState: () => ({
+        selectedImage: editorState.selectedImage,
+        activeTool: editorState.activeTool,
+        textElements,
+        overlayImages,
+        cropState,
+        adjustments,
+        colorAdjustments,
+        shadow,
+        duotone,
+        brushMode,
+        brushSettings,
+      }),
       addText: ({
         text,
         style,
         font,
         color,
         opacity,
+        fontSize,
         fontWeight,
         fontStyle,
         textDecoration,
       }) => {
         if (!isMountedRef.current) return;
         const id = Date.now();
-        const fontSize =
-          style === "h1" ? "32px" : style === "h2" ? "24px" : "20px";
-        const numericSize = parseInt(fontSize);
+        const resolvedFontSize =
+          fontSize ||
+          (style === "h1" ? "32px" : style === "h2" ? "24px" : "20px");
+
+        const numericSize = parseInt(resolvedFontSize);
         const defaultWidth = numericSize * 10;
         const defaultHeight = numericSize * 2;
 
@@ -2072,7 +2619,7 @@ const ImageEditor = forwardRef(
               text: text || "",
               x: 50,
               y: 50,
-              fontSize,
+              fontSize: resolvedFontSize,
               fontFamily: font,
               color,
               opacity: opacity || 1,
@@ -2083,29 +2630,84 @@ const ImageEditor = forwardRef(
               height: defaultHeight,
             },
           ];
-          notifyStateChange();
+          const newState = {
+            selectedImage: editorState.selectedImage,
+            activeTool: editorState.activeTool,
+            textElements: newTextElements,
+            overlayImages,
+            cropState,
+            adjustments,
+            colorAdjustments,
+            shadow,
+            duotone,
+            brushMode,
+            brushSettings,
+          };
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              onStateChange(newState);
+            }
+          }, 0);
+          setSelectedTextId(id);
+          setSelectedOverlayImageId(null);
           return newTextElements;
         });
-        setSelectedTextId(id);
       },
+
       addOverlayImage: () => {
         if (overlayImages.length >= MAX_OVERLAY_IMAGES) {
           console.error("Maximum number of overlay images reached");
           return;
         }
+        setSelectedTextId(null);
+        setSelectedOverlayImageId(null);
         overlayImageInputRef.current?.click();
       },
       updateSelectedText: (props) => {
         if (!isMountedRef.current) return;
 
+        // 1. Immediate estimated size update for fast visual sync
         setTextElements((prev) => {
-          const newTextElements = prev.map((el) =>
-            el.id === selectedTextId ? { ...el, ...props } : el
-          );
-          notifyStateChange();
+          const newTextElements = prev.map((el) => {
+            if (el.id !== selectedTextId) return el;
+
+            const fontSizePx = parseInt(
+              props.fontSize || el.fontSize || "20",
+              10
+            );
+            const text = props.text || el.text || "";
+            const fallbackWidth = fontSizePx * Math.max(text.length * 0.6, 5);
+
+            return {
+              ...el,
+              ...props,
+              width: fallbackWidth,
+              height: fontSizePx * 1.6,
+            };
+          });
+
+          const newState = {
+            selectedImage: editorState.selectedImage,
+            activeTool: editorState.activeTool,
+            textElements: newTextElements,
+            overlayImages,
+            cropState,
+            adjustments,
+            colorAdjustments,
+            shadow,
+            duotone,
+            brushMode,
+            brushSettings,
+          };
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              onStateChange(newState);
+            }
+          }, 0);
           return newTextElements;
         });
 
+        // 2. Optional fine-tuning using actual DOM measurements
         if (resizeTimeoutRef.current) {
           clearTimeout(resizeTimeoutRef.current);
         }
@@ -2145,13 +2747,31 @@ const ImageEditor = forwardRef(
                       }
                     : el
                 );
-                notifyStateChange();
+                const newState = {
+                  selectedImage: editorState.selectedImage,
+                  activeTool: editorState.activeTool,
+                  textElements: newTextElements,
+                  overlayImages,
+                  cropState,
+                  adjustments,
+                  colorAdjustments,
+                  shadow,
+                  duotone,
+                  brushMode,
+                  brushSettings,
+                };
+                setTimeout(() => {
+                  if (isMountedRef.current) {
+                    onStateChange(newState);
+                  }
+                }, 0);
                 return newTextElements;
               });
             });
           });
         }, 60);
       },
+
       applyCrop: ({ aspectRatio, reset = false }) => {
         if (!canvasRef.current) return;
         const canvas = canvasRef.current;
@@ -2607,24 +3227,75 @@ const ImageEditor = forwardRef(
       }
     };
 
-    const handleTextInput = useCallback((id, text) => {
-      const normalizedText = text.normalize();
-      setTextElements((prev) => {
-        const newTextElements = prev.map((item) =>
-          item.id === id ? { ...item, text: normalizedText } : item
-        );
-        notifyStateChange();
-        return newTextElements;
-      });
-    }, [notifyStateChange]);
+    const handleTextInput = useCallback(
+      (id, text) => {
+        const normalizedText = text.normalize();
+        setTextElements((prev) => {
+          const newTextElements = prev.map((item) =>
+            item.id === id ? { ...item, text: normalizedText } : item
+          );
+          const newState = {
+            selectedImage: editorState.selectedImage,
+            activeTool: editorState.activeTool,
+            textElements: newTextElements,
+            overlayImages,
+            cropState,
+            adjustments,
+            colorAdjustments,
+            shadow,
+            duotone,
+            brushMode,
+            brushSettings,
+          };
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              onStateChange(newState);
+            }
+          }, 0);
+          return newTextElements;
+        });
+      },
+      [
+        editorState?.selectedImage,
+        editorState?.activeTool,
+        overlayImages,
+        cropState,
+        adjustments,
+        colorAdjustments,
+        shadow,
+        duotone,
+        brushMode,
+        brushSettings,
+        onStateChange,
+      ]
+    );
 
     useEffect(() => {
       const handleKeyDown = (e) => {
         if (e.key === "Delete") {
           if (selectedTextId !== null) {
             setTextElements((prev) => {
-              const newTextElements = prev.filter((el) => el.id !== selectedTextId);
-              notifyStateChange();
+              const newTextElements = prev.filter(
+                (el) => el.id !== selectedTextId
+              );
+              const newState = {
+                selectedImage: editorState.selectedImage,
+                activeTool: editorState.activeTool,
+                textElements: newTextElements,
+                overlayImages,
+                cropState,
+                adjustments,
+                colorAdjustments,
+                shadow,
+                duotone,
+                brushMode,
+                brushSettings,
+              };
+              setTimeout(() => {
+                if (isMountedRef.current) {
+                  onStateChange(newState);
+                }
+              }, 0);
               return newTextElements;
             });
             setSelectedTextId(null);
@@ -2632,8 +3303,27 @@ const ImageEditor = forwardRef(
             e.stopPropagation();
           } else if (selectedOverlayImageId !== null) {
             setOverlayImages((prev) => {
-              const newOverlayImages = prev.filter((el) => el.id !== selectedOverlayImageId);
-              notifyStateChange();
+              const newOverlayImages = prev.filter(
+                (el) => el.id !== selectedOverlayImageId
+              );
+              const newState = {
+                selectedImage: editorState.selectedImage,
+                activeTool: editorState.activeTool,
+                textElements,
+                overlayImages: newOverlayImages,
+                cropState,
+                adjustments,
+                colorAdjustments,
+                shadow,
+                duotone,
+                brushMode,
+                brushSettings,
+              };
+              setTimeout(() => {
+                if (isMountedRef.current) {
+                  onStateChange(newState);
+                }
+              }, 0);
               return newOverlayImages;
             });
             setSelectedOverlayImageId(null);
@@ -2645,7 +3335,22 @@ const ImageEditor = forwardRef(
 
       document.addEventListener("keydown", handleKeyDown);
       return () => document.removeEventListener("keydown", handleKeyDown);
-    }, [selectedTextId, selectedOverlayImageId, notifyStateChange]);
+    }, [
+      selectedTextId,
+      selectedOverlayImageId,
+      editorState?.selectedImage,
+      editorState?.activeTool,
+      textElements,
+      overlayImages,
+      cropState,
+      adjustments,
+      colorAdjustments,
+      shadow,
+      duotone,
+      brushMode,
+      brushSettings,
+      onStateChange,
+    ]);
 
     if (!editorState?.selectedImage) {
       return (
@@ -2679,11 +3384,24 @@ const ImageEditor = forwardRef(
         <ImageToolbar
           visible={toolbarVisible}
           onToolSelect={(toolId) => {
-            onToolSelect(toolId);
-            if (toolId === "add-image") {
-              overlayImageInputRef.current?.click();
+            if (toolId === "add-text") {
+              ref.current.addText({
+                text: "Sample Text",
+                style: "body",
+                font: "Arial",
+                color: "#000000",
+                opacity: 1,
+                fontSize: "20px",
+                fontWeight: "normal",
+                fontStyle: "normal",
+                textDecoration: "none",
+              });
+            } else if (toolId === "add-image") {
+              ref.current.addOverlayImage();
+            } else {
+              onToolSelect(toolId);
+              setToolbarVisible(false);
             }
-            setToolbarVisible(false);
           }}
           onClose={() => setToolbarVisible(false)}
         />
@@ -2778,7 +3496,24 @@ const ImageEditor = forwardRef(
                           ? { ...item, height: newHeight }
                           : item
                       );
-                      notifyStateChange();
+                      const newState = {
+                        selectedImage: editorState.selectedImage,
+                        activeTool: editorState.activeTool,
+                        textElements: newTextElements,
+                        overlayImages,
+                        cropState,
+                        adjustments,
+                        colorAdjustments,
+                        shadow,
+                        duotone,
+                        brushMode,
+                        brushSettings,
+                      };
+                      setTimeout(() => {
+                        if (isMountedRef.current) {
+                          onStateChange(newState);
+                        }
+                      }, 0);
                       return newTextElements;
                     });
                   }
@@ -2786,8 +3521,27 @@ const ImageEditor = forwardRef(
                 onKeyDown={(e) => {
                   if (e.key === "Delete") {
                     setTextElements((prev) => {
-                      const newTextElements = prev.filter((item) => item.id !== el.id);
-                      notifyStateChange();
+                      const newTextElements = prev.filter(
+                        (item) => item.id !== el.id
+                      );
+                      const newState = {
+                        selectedImage: editorState.selectedImage,
+                        activeTool: editorState.activeTool,
+                        textElements: newTextElements,
+                        overlayImages,
+                        cropState,
+                        adjustments,
+                        colorAdjustments,
+                        shadow,
+                        duotone,
+                        brushMode,
+                        brushSettings,
+                      };
+                      setTimeout(() => {
+                        if (isMountedRef.current) {
+                          onStateChange(newState);
+                        }
+                      }, 0);
                       return newTextElements;
                     });
                     setSelectedTextId(null);
@@ -2801,7 +3555,7 @@ const ImageEditor = forwardRef(
                   className="text-move-handle"
                   onMouseDown={(e) => startDrag(e, el.id, "text")}
                 >
-                  <span className="move-icon">↔ Move</span>
+                  <span className="move-icon">⟐ Move</span>
                 </div>
               )}
             </div>

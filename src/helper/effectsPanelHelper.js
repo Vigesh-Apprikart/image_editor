@@ -19,9 +19,9 @@ export const effectCategories = {
     'Amber', 'Pomelo', 'Blush', 'Peppermint', 'Mystic', 'Pastel', 'Coral', 'Lavender',
     'Dusk', 'Dawn', 'Myrtle', 'Mint Choc', 'Sepia', 'Mono', 'Classic'
   ],
-  'Blur': ['Brush Blur'],
-  'Auto Focus': ['Tilt Shift', 'Focus Point', 'Depth of Field', 'Bokeh'],
-  'Face Retouch': ['Smooth Skin', 'Brighten Eyes', 'Whiten Teeth', 'Remove Blemishes'],
+  // 'Blur': ['Brush Blur'],
+  // 'Auto Focus': ['Tilt Shift', 'Focus Point', 'Depth of Field', 'Bokeh'],
+  // 'Face Retouch': ['Smooth Skin', 'Brighten Eyes', 'Whiten Teeth', 'Remove Blemishes'],
 };
 
 export const baseEffectAdjustments = {
