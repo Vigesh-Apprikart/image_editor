@@ -1,4 +1,4 @@
-// import React, { useState, useCallback, useEffect } from "react";
+// import React, { useState, useEffect } from "react";
 // import {
 //   FaSearch,
 //   FaPlus,
@@ -31,9 +31,10 @@
 //   const [bold, setBold] = useState(initialTextState.bold);
 //   const [italic, setItalic] = useState(initialTextState.italic);
 //   const [underline, setUnderline] = useState(initialTextState.underline);
-//   const [fontSize, setFontSize] = useState(20);
+//   const [fontSize, setFontSize] = useState(20); // Controlled by slider for updating text
+//   const [initialAddFontSize] = useState(60); // 👈 Used only when adding new text
 
-//   // Update selected text when relevant states change
+//   // Apply changes to selected text only
 //   useEffect(() => {
 //     editorRef.current?.updateSelectedText?.({
 //       fontSize: `${fontSize}px`,
@@ -56,39 +57,27 @@
 //   ]);
 
 //   const handleAddText = () => {
+//     const newFontSize = initialAddFontSize;
+
 //     editorRef.current?.addText({
 //       text: "New Text",
 //       style: selectedTextStyle,
 //       font: selectedFont,
 //       color: textColor,
 //       opacity,
+//       fontSize: `${newFontSize}px`,
 //       fontWeight: bold ? "bold" : "normal",
 //       fontStyle: italic ? "italic" : "normal",
 //       textDecoration: underline ? "underline" : "none",
 //     });
+
+//     setFontSize(newFontSize); // 👈 sync slider with actual font size
 //   };
 
-//   const handleColorSelect = (color) => {
-//     if (textColor !== color) {
-//       setTextColor(color);
-//     }
-//   };
-
-//   const handleColorHover = (color) => {
-//     setPreviewColor(color);
-//   };
-
-//   const handleColorLeave = () => {
-//     setPreviewColor("");
-//   };
-
-//   const handleCustomColorChange = (e) => {
-//     const newColor = e.target.value;
-//     if (textColor !== newColor) {
-//       setTextColor(newColor);
-//     }
-//   };
-
+//   const handleColorSelect = (color) => setTextColor(color);
+//   const handleColorHover = (color) => setPreviewColor(color);
+//   const handleColorLeave = () => setPreviewColor("");
+//   const handleCustomColorChange = (e) => setTextColor(e.target.value);
 //   const displayColor = previewColor || textColor;
 
 //   return (
@@ -119,11 +108,7 @@
 //               className={`btn text-button ${
 //                 selectedTextStyle === style.id ? "active" : ""
 //               }`}
-//               onClick={() => {
-//                 if (selectedTextStyle !== style.id) {
-//                   setSelectedTextStyle(style.id);
-//                 }
-//               }}
+//               onClick={() => setSelectedTextStyle(style.id)}
 //             >
 //               {style.label}
 //             </button>
@@ -145,12 +130,11 @@
 
 //       <div className="form-group">
 //         <label className="form-label">Text Color</label>
-//         {/* Color Preview */}
 //         <div className="color-preview-container">
 //           <div
 //             className="color-preview-circle"
 //             style={{ backgroundColor: displayColor }}
-//           ></div>
+//           />
 //           <div className="color-preview-text">
 //             <span style={{ color: displayColor }} className="color-text-sample">
 //               Sample Text
@@ -159,7 +143,6 @@
 //           </div>
 //         </div>
 
-//         {/* Color Palette */}
 //         <div className="color-palette">
 //           {colorPalette.map((color, index) => (
 //             <button
@@ -181,7 +164,6 @@
 //           ))}
 //         </div>
 
-//         {/* Custom Color Input */}
 //         <div className="custom-color-container">
 //           <input
 //             type="color"
@@ -199,7 +181,6 @@
 //           />
 //         </div>
 
-//         {/* Quick Access Colors */}
 //         <div className="quick-access-container">
 //           {quickAccessColors.map((color, index) => (
 //             <button
@@ -225,10 +206,7 @@
 //           max="1"
 //           step="0.1"
 //           value={opacity}
-//           onChange={(e) => {
-//             const newOpacity = parseFloat(e.target.value);
-//             setOpacity(newOpacity);
-//           }}
+//           onChange={(e) => setOpacity(parseFloat(e.target.value))}
 //           className="opacity-slider"
 //         />
 //         <span className="opacity-value">{(opacity * 100).toFixed(0)}%</span>
@@ -239,25 +217,19 @@
 //         <div className="text-format-buttons">
 //           <button
 //             className={`btn-icon format-btn ${bold ? "active" : ""}`}
-//             onClick={() => {
-//               setBold(!bold);
-//             }}
+//             onClick={() => setBold(!bold)}
 //           >
 //             <FaBold />
 //           </button>
 //           <button
 //             className={`btn-icon format-btn ${italic ? "active" : ""}`}
-//             onClick={() => {
-//               setItalic(!italic);
-//             }}
+//             onClick={() => setItalic(!italic)}
 //           >
 //             <FaItalic />
 //           </button>
 //           <button
 //             className={`btn-icon format-btn ${underline ? "active" : ""}`}
-//             onClick={() => {
-//               setUnderline(!underline);
-//             }}
+//             onClick={() => setUnderline(!underline)}
 //           >
 //             <FaUnderline />
 //           </button>
@@ -288,6 +260,7 @@
 // };
 
 // export default TextPanel;
+
 
 import React, { useState, useEffect } from "react";
 import {
@@ -322,10 +295,20 @@ const TextPanel = ({ editorRef }) => {
   const [bold, setBold] = useState(initialTextState.bold);
   const [italic, setItalic] = useState(initialTextState.italic);
   const [underline, setUnderline] = useState(initialTextState.underline);
-  const [fontSize, setFontSize] = useState(20); // Controlled by slider for updating text
-  const [initialAddFontSize] = useState(60); // 👈 Used only when adding new text
+  const [fontSize, setFontSize] = useState(100); // default large size
+  const [initialAddFontSize] = useState(100);
+  const [hasManualSize, setHasManualSize] = useState(false);
 
-  // Apply changes to selected text only
+  // 🧠 Update font size when text style changes (only if user hasn't changed it manually)
+  useEffect(() => {
+    if (hasManualSize) return;
+    const style = textStyles.find((s) => s.id === selectedTextStyle);
+    if (style?.size) {
+      setFontSize(parseInt(style.size));
+    }
+  }, [selectedTextStyle, hasManualSize]);
+
+  // ✏️ Apply changes to selected text
   useEffect(() => {
     editorRef.current?.updateSelectedText?.({
       fontSize: `${fontSize}px`,
@@ -348,17 +331,20 @@ const TextPanel = ({ editorRef }) => {
   ]);
 
   const handleAddText = () => {
+    const newFontSize = initialAddFontSize;
     editorRef.current?.addText({
       text: "New Text",
       style: selectedTextStyle,
       font: selectedFont,
       color: textColor,
       opacity,
-      fontSize: `${initialAddFontSize}px`, // 👈 use new large font size
+      fontSize: `${newFontSize}px`,
       fontWeight: bold ? "bold" : "normal",
       fontStyle: italic ? "italic" : "normal",
       textDecoration: underline ? "underline" : "none",
     });
+    setFontSize(newFontSize); // sync slider
+    setHasManualSize(false); // reset manual flag
   };
 
   const handleColorSelect = (color) => setTextColor(color);
@@ -369,24 +355,12 @@ const TextPanel = ({ editorRef }) => {
 
   return (
     <div className="text-panel">
-      {/* <div className="form-group">
-        <div className="search-container">
-          <FaSearch className="search-icon" />
-          <input
-            type="text"
-            className="form-input search-input"
-            placeholder="Search for fonts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div> */}
-
       <button className="btn btn-custom add-button" onClick={handleAddText}>
         <FaPlus size={14} /> Add Text
       </button>
 
-      {/* <div className="form-group">
+      {/* ✅ Text Styles */}
+      <div className="form-group">
         <label className="form-label">Text Style</label>
         <div className="text-styles">
           {textStyles.map((style) => (
@@ -395,14 +369,18 @@ const TextPanel = ({ editorRef }) => {
               className={`btn text-button ${
                 selectedTextStyle === style.id ? "active" : ""
               }`}
-              onClick={() => setSelectedTextStyle(style.id)}
+              onClick={() => {
+                setSelectedTextStyle(style.id);
+                setHasManualSize(false); // allow auto font size change
+              }}
             >
               {style.label}
             </button>
           ))}
         </div>
-      </div> */}
+      </div>
 
+      {/* Font Size */}
       <div className="form-group">
         <label className="form-label">Font Size: {fontSize}px</label>
         <input
@@ -410,11 +388,15 @@ const TextPanel = ({ editorRef }) => {
           min="8"
           max="200"
           value={fontSize}
-          onChange={(e) => setFontSize(parseInt(e.target.value))}
+          onChange={(e) => {
+            setFontSize(parseInt(e.target.value));
+            setHasManualSize(true);
+          }}
           className="opacity-slider"
         />
       </div>
 
+      {/* Text Color */}
       <div className="form-group">
         <label className="form-label">Text Color</label>
         <div className="color-preview-container">
@@ -485,6 +467,7 @@ const TextPanel = ({ editorRef }) => {
         </div>
       </div>
 
+      {/* Opacity */}
       <div className="form-group">
         <label className="form-label">Opacity</label>
         <input
@@ -499,6 +482,7 @@ const TextPanel = ({ editorRef }) => {
         <span className="opacity-value">{(opacity * 100).toFixed(0)}%</span>
       </div>
 
+      {/* Text Format */}
       <div className="form-group">
         <label className="form-label">Text Format</label>
         <div className="text-format-buttons">
@@ -523,6 +507,7 @@ const TextPanel = ({ editorRef }) => {
         </div>
       </div>
 
+      {/* Font Family */}
       <div className="form-group">
         <label className="form-label">Font Family</label>
         <div className="font-thumbnail-grid">

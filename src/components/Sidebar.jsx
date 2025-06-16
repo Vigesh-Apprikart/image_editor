@@ -1,13 +1,21 @@
-import React from 'react';
-import { FaFont, FaCrop, FaAdjust, FaFilter, FaMagic } from 'react-icons/fa';
-import './Sidebar.css';
+import React from "react";
+import {
+  FaFont,
+  FaCrop,
+  FaAdjust,
+  FaFilter,
+  FaMagic,
+  FaImage,
+} from "react-icons/fa";
+import "./Sidebar.css";
 
 const tools = [
-  { id: 'text', label: 'Text', icon: FaFont },
+  { id: "text", label: "Text", icon: FaFont },
+  { id: "add-image", label: "Image", icon: FaImage },
   // { id: 'crop', label: 'Crop', icon: FaCrop },
-  { id: 'adjust', label: 'Adjust', icon: FaAdjust },
-  { id: 'filters', label: 'Filters', icon: FaFilter },
-  { id: 'effects', label: 'Effects', icon: FaMagic },
+  { id: "adjust", label: "Adjust", icon: FaAdjust },
+  { id: "filters", label: "Filters", icon: FaFilter },
+  // { id: "effects", label: "Effects", icon: FaMagic },
 ];
 
 const Sidebar = ({ activeTool, onToolSelect }) => {
@@ -18,7 +26,7 @@ const Sidebar = ({ activeTool, onToolSelect }) => {
         return (
           <button
             key={tool.id}
-            className={`sidebar-tool ${activeTool === tool.id ? 'active' : ''}`}
+            className={`sidebar-tool ${activeTool === tool.id ? "active" : ""}`}
             onClick={() => onToolSelect(tool.id)}
             title={tool.label}
           >

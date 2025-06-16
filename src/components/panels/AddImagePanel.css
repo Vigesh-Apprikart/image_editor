@@ -1,0 +1,39 @@
+.image-panel {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  color: #000000;
+  font-family: "Inter", sans-serif;
+}
+
+.image-panel p {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.add-image-btn {
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
+}
+
+.add-image-btn:hover {
+  background: linear-gradient(135deg, #6d28d9, #7c3aed);
+  transform: scale(1.03);
+}
+
+.add-image-btn:active {
+  transform: scale(0.98);
+}

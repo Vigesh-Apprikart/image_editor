@@ -7,7 +7,7 @@ import React, {
   useEffect,
 } from "react";
 import { FaCloudUploadAlt } from "react-icons/fa";
-import ImageToolbar from "./ImageToolbar";
+// import ImageToolbar from "./ImageToolbar";
 import "./ImageEditor.css";
 import {
   drawCanvasHelper,
@@ -898,8 +898,8 @@ const ImageEditor = forwardRef(
           (style === "h1" ? "32px" : style === "h2" ? "24px" : "20px");
 
         const numericSize = parseInt(resolvedFontSize);
-        const defaultWidth = numericSize * 10;
-        const defaultHeight = numericSize * 2;
+        const defaultWidth = numericSize * 5; // Reduce width
+        const defaultHeight = numericSize * 1.4; // Reduce height
 
         setTextElements((prev) => {
           const newTextElements = [
@@ -1024,8 +1024,11 @@ const ImageEditor = forwardRef(
               const fontSizePx = parseInt(props.fontSize || "20", 10);
               const fallbackWidth = fontSizePx * Math.max(text.length * 0.6, 5);
 
-              const newWidth = Math.max(node.scrollWidth + 8, fallbackWidth);
-              const newHeight = node.scrollHeight;
+              const newWidth = Math.min(
+                Math.max(node.scrollWidth + 8, fallbackWidth),
+                300
+              ); // Limit width to 300
+              const newHeight = Math.min(node.scrollHeight, 150); // Limit height to 150
 
               setTextElements((prev) => {
                 const newTextElements = prev.map((el) =>
@@ -1671,7 +1674,7 @@ const ImageEditor = forwardRef(
 
     return (
       <div className="image-editor" dir="ltr">
-        <ImageToolbar
+        {/* <ImageToolbar
           visible={toolbarVisible}
           onToolSelect={(toolId) => {
             if (toolId === "add-text") {
@@ -1694,7 +1697,7 @@ const ImageEditor = forwardRef(
             }
           }}
           onClose={() => setToolbarVisible(false)}
-        />
+        /> */}
         <div
           className="canvas-container"
           ref={containerRef}
