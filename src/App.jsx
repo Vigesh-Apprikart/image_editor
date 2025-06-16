@@ -74,35 +74,38 @@ function App() {
   };
 
   const addToHistory = (newState) => {
-    const simplifiedState = {
+    if (!newState || !newState.selectedImage) return;
+
+    const essentialState = {
       selectedImage: newState.selectedImage,
-      textElements: newState.textElements,
-      overlayImages: newState.overlayImages,
-      cropState: newState.cropState,
-      adjustments: newState.adjustments,
-      colorAdjustments: newState.colorAdjustments,
-      shadow: newState.shadow,
-      duotone: newState.duotone,
-      brushMode: newState.brushMode,
-      brushSettings: newState.brushSettings,
+      textElements: newState.textElements || [],
+      overlayImages: newState.overlayImages || [],
+      cropState: newState.cropState || {},
+      adjustments: newState.adjustments || {},
+      colorAdjustments: newState.colorAdjustments || {},
+      shadow: newState.shadow || {},
+      duotone: newState.duotone || null,
+      brushMode: newState.brushMode || false,
+      brushSettings: newState.brushSettings || {},
     };
 
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(simplifiedState);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
+    const currentSerialized = JSON.stringify(history[historyIndex]);
+    const newSerialized = JSON.stringify(essentialState);
+
+    // Only push if different from current
+    if (currentSerialized !== newSerialized) {
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(essentialState);
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    }
   };
 
   const handleUndo = () => {
     if (historyIndex > 0 && editorRef.current) {
       const newIndex = historyIndex - 1;
-      const prevState = history[newIndex];
-      editorRef.current.restoreState(prevState); // update canvas
-      setEditorState((prev) => ({
-        ...prev,
-        ...prevState,
-        activeTool: "", // don't restore activeTool on undo/redo
-      }));
+      const stateToRestore = history[newIndex];
+      editorRef.current.restoreState(stateToRestore); // apply to canvas
       setHistoryIndex(newIndex);
     }
   };
@@ -110,13 +113,8 @@ function App() {
   const handleRedo = () => {
     if (historyIndex < history.length - 1 && editorRef.current) {
       const newIndex = historyIndex + 1;
-      const nextState = history[newIndex];
-      editorRef.current.restoreState(nextState); // update canvas
-      setEditorState((prev) => ({
-        ...prev,
-        ...nextState,
-        activeTool: "", // don't restore activeTool on undo/redo
-      }));
+      const stateToRestore = history[newIndex];
+      editorRef.current.restoreState(stateToRestore); // apply to canvas
       setHistoryIndex(newIndex);
     }
   };
@@ -127,25 +125,23 @@ function App() {
 
   const handleToolSelect = (tool) => {
     if (editorState?.selectedImage && editorRef.current) {
-      const currentState = editorRef.current.getCurrentState?.();
-      const newState = {
-        ...(currentState || editorState),
+      const currentState = editorRef.current?.getCurrentState?.();
+      setEditorState((prev) => ({
+        ...prev,
+        ...(currentState || {}),
         activeTool: tool,
-      };
-      setEditorState(newState);
-      // DO NOT add to history here unless user changes something
+      }));
     }
   };
 
   const handleToolClose = () => {
     if (editorState?.selectedImage && editorRef.current) {
-      const currentState = editorRef.current.getCurrentState?.();
-      const newState = {
-        ...(currentState || editorState),
+      const currentState = editorRef.current?.getCurrentState?.();
+      setEditorState((prev) => ({
+        ...prev,
+        ...(currentState || {}),
         activeTool: "",
-      };
-      setEditorState(newState);
-      // Again, only add to history if user edited something, not just closed
+      }));
     }
   };
 
