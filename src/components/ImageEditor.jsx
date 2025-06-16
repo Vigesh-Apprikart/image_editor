@@ -3613,7 +3613,7 @@ const ImageEditor = forwardRef(
             onMouseUp={stopDrawing}
             onMouseOut={stopDrawing}
           />
-          {textElements.map((el) => (
+          {/* {textElements.map((el) => (
             <div
               key={el.id}
               className="text-overlay-element-wrapper"
@@ -3746,11 +3746,135 @@ const ImageEditor = forwardRef(
               {selectedTextId === el.id && (
                 <div
                   className="text-move-handle"
+                  style={{
+                    position: "absolute",
+                    bottom: -20, // show below text
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    backgroundColor: "#8B5CF6",
+                    color: "#fff",
+                    fontSize: "12px",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    cursor: "move",
+                    userSelect: "none",
+                    zIndex: 999,
+                  }}
                   onMouseDown={(e) => startDrag(e, el.id, "text")}
                 >
-                  <span className="move-icon">↔ Move</span>
+                  ↔ Move
                 </div>
               )}
+            </div>
+          ))} */}
+
+          {textElements.map((el) => (
+            <div
+              key={el.id}
+              className="text-overlay-element-wrapper"
+              style={{
+                position: "absolute",
+                top: el.y,
+                left: el.x,
+                zIndex: 100,
+              }}
+            >
+              <div
+                style={{
+                  position: "relative",
+                  display: "inline-block",
+                  paddingBottom: "24px", // leave space for move button
+                }}
+              >
+                <div
+                  className="text-overlay-element"
+                  dir="auto"
+                  contentEditable
+                  tabIndex={0}
+                  suppressContentEditableWarning
+                  style={{
+                    fontSize: el.fontSize,
+                    fontFamily: el.fontFamily,
+                    color: el.color,
+                    opacity: el.opacity,
+                    fontWeight: el.fontWeight,
+                    fontStyle: el.fontStyle,
+                    textDecoration: el.textDecoration,
+                    padding: "4px",
+                    background: "transparent",
+                    border:
+                      selectedTextId === el.id
+                        ? "2px solid #8B5CF6"
+                        : "1px solid transparent",
+                    outline: "none",
+                    cursor: "move",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    minWidth: 40,
+                    // maxWidth: 300,
+                  }}
+                  draggable={false}
+                  ref={(node) => {
+                    if (node) {
+                      textElementRefs.current[el.id] = node;
+                      if (!node.innerText) {
+                        node.innerText = el.text;
+                      }
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    if (e.target === textElementRefs.current[el.id]) {
+                      startDrag(e, el.id, "text");
+                    }
+                  }}
+                  onFocus={() => setSelectedTextId(el.id)}
+                  onBlur={() => {
+                    const text =
+                      textElementRefs.current[el.id]?.innerText || "";
+                    handleTextInput(el.id, text);
+                  }}
+                  onInput={(e) => {
+                    const text = e.target.innerText;
+                    handleTextInput(el.id, text);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Delete") {
+                      setTextElements((prev) =>
+                        prev.filter((item) => item.id !== el.id)
+                      );
+                      setSelectedTextId(null);
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                />
+
+                {/* Move handle */}
+                {selectedTextId === el.id && (
+                  <div
+                    className="text-move-handle"
+                    onMouseDown={(e) => startDrag(e, el.id, "text")}
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: "50%",
+                      transform: "translate(0%, -110%)",
+                      backgroundColor: "#8B5CF6",
+                      color: "#fff",
+                      fontSize: "12px",
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                      cursor: "move",
+                      userSelect: "none",
+                      whiteSpace: "nowrap",
+                      zIndex: 999,
+                    }}
+                  >
+                    ↔ Move
+                  </div>
+                )}
+              </div>
             </div>
           ))}
 
