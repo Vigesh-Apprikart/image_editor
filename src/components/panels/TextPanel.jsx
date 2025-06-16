@@ -261,7 +261,6 @@
 
 // export default TextPanel;
 
-
 import React, { useState, useEffect } from "react";
 import {
   FaSearch,
@@ -307,6 +306,22 @@ const TextPanel = ({ editorRef }) => {
       setFontSize(parseInt(style.size));
     }
   }, [selectedTextStyle, hasManualSize]);
+
+  useEffect(() => {
+    const selected = editorRef.current?.getSelectedText?.(); // ← assumes this returns the selected text object
+    if (selected) {
+      const newFontSize = parseInt(selected.fontSize);
+      if (!hasManualSize && !isNaN(newFontSize)) {
+        setFontSize(newFontSize);
+      }
+      setSelectedFont(selected.fontFamily || initialTextState.selectedFont);
+      setTextColor(selected.color || initialTextState.textColor);
+      setOpacity(selected.opacity ?? initialTextState.opacity);
+      setBold(selected.fontWeight === "bold");
+      setItalic(selected.fontStyle === "italic");
+      setUnderline(selected.textDecoration === "underline");
+    }
+  }, [editorRef.current?.getSelectedText, hasManualSize]);
 
   // ✏️ Apply changes to selected text
   useEffect(() => {
@@ -389,8 +404,11 @@ const TextPanel = ({ editorRef }) => {
           max="200"
           value={fontSize}
           onChange={(e) => {
-            setFontSize(parseInt(e.target.value));
-            setHasManualSize(true);
+            const newSize = parseInt(e.target.value);
+            if (!isNaN(newSize)) {
+              setFontSize(newSize);
+              setHasManualSize(true);
+            }
           }}
           className="opacity-slider"
         />
