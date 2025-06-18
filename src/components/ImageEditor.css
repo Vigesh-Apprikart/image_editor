@@ -84,12 +84,17 @@
 
 .text-overlay-element {
   z-index: 50;
+  overflow-y: auto;
+  overflow-x: hidden;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .overlay-image-element {
   position: absolute;
   z-index: 100;
-  pointer-events: none;
+  pointer-events: auto;
+  user-select: none;
 }
 
 .text-drag-layer {
@@ -101,7 +106,7 @@
   width: 10px;
   height: 10px;
   background: #ffffff;
-  border: 2px solid #8B5CF6;
+  border: 2px solid #8b5cf6;
   position: absolute;
   z-index: 60;
   box-sizing: border-box;
@@ -170,28 +175,13 @@
 
 .overlay-image-element:hover,
 .text-overlay-element:hover {
-  outline: 1px dashed #8B5CF6;
+  outline: 1px dashed #8b5cf6;
 }
 
-.text-move-handle {
-  position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #8b5cf6;
-  color: white;
-  padding: 2px 8px;
-  font-size: 12px;
-  border-radius: 6px;
-  cursor: grab;
-  user-select: none;
-  z-index: 150;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-  transition: background-color 0.2s ease;
-}
-
-.text-move-handle:hover {
-  background-color: #7c3aed;
+.selected-main-image {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 4px;
+  border-radius: 8px;
 }
 
 .move-icon {
@@ -199,7 +189,6 @@
   align-items: center;
   justify-content: center;
 }
-
 
 @media (max-width: 768px) {
   .image-editor {
@@ -213,4 +202,78 @@
   .image-canvas {
     max-height: 50vh;
   }
+}
+
+.resizable-canvas-wrapper {
+  position: absolute;
+  border: 2px solid transparent;
+  z-index: 20;
+}
+
+.selected-main-image .resizable-canvas-wrapper {
+  border-color: #8b5cf6;
+}
+
+.resizer {
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border: 2px solid #8b5cf6;
+  position: absolute;
+  z-index: 999;
+}
+
+.resizer-n {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+.resizer-s {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+.resizer-e {
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+.resizer-w {
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.resizer-nw {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+.resizer-ne {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+.resizer-se {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+.resizer-sw {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
+}
+
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
 }

@@ -2,7 +2,7 @@ export const initialTextState = {
   searchTerm: "",
   selectedTextStyle: "h1",
   selectedFont: "Arial",
-  textColor: "#3B82F6",
+  textColor: "#000000",
   previewColor: "",
   opacity: 1,
   bold: false,
