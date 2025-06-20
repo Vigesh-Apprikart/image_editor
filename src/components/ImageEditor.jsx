@@ -556,6 +556,7 @@ const ImageEditor = forwardRef(
 
     const startDrag = (e, id, type) => {
       e.stopPropagation();
+
       if (type === "overlay") {
         setSelectedOverlayImageId(id);
         setSelectedTextId(null);
@@ -588,6 +589,11 @@ const ImageEditor = forwardRef(
       };
 
       setIsDragging(true);
+
+      // ✅ Immediately add listeners to allow movement
+      window.addEventListener("mousemove", handleMove);
+      window.addEventListener("mouseup", handleEnd);
+      window.addEventListener("blur", handleEnd);
     };
 
     const startResize = (e, id, type, direction) => {
@@ -631,6 +637,171 @@ const ImageEditor = forwardRef(
       setIsDragging(true);
     };
 
+    // const handleMove = throttle((moveEvent) => {
+    //   if (!isDragging || !isMountedRef.current || !dragDataRef.current) return;
+
+    //   const {
+    //     id,
+    //     type,
+    //     action,
+    //     startX,
+    //     startY,
+    //     offsetX,
+    //     offsetY,
+    //     direction,
+    //     startWidth,
+    //     startHeight,
+    //     startLeft,
+    //     startTop,
+    //   } = dragDataRef.current;
+
+    //   const containerRect = containerRef.current?.getBoundingClientRect();
+    //   if (!containerRect) return;
+
+    //   const currentX = moveEvent.clientX - containerRect.left;
+    //   const currentY = moveEvent.clientY - containerRect.top;
+    //   const dx = currentX - startX;
+    //   const dy = currentY - startY;
+
+    //   if (
+    //     !dragDataRef.current.hasMoved &&
+    //     (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)
+    //   ) {
+    //     dragDataRef.current.hasMoved = true;
+    //   }
+
+    //   if (!dragDataRef.current.hasMoved) return;
+
+    //   if (action === "drag") {
+    //     const element =
+    //       type === "overlay"
+    //         ? overlayImages.find((el) => el.id === id)
+    //         : textElements.find((el) => el.id === id);
+    //     if (!element) return;
+
+    //     const newX = Math.max(
+    //       0,
+    //       Math.min(currentX - offsetX, containerRect.width - element.width)
+    //     );
+    //     const newY = Math.max(
+    //       0,
+    //       Math.min(currentY - offsetY, containerRect.height - element.height)
+    //     );
+
+    //     if (type === "overlay") {
+    //       setOverlayImages((prev) => {
+    //         const newOverlayImages = prev.map((el) =>
+    //           el.id === id ? { ...el, x: newX, y: newY } : el
+    //         );
+    //         notifyStateChange();
+    //         return newOverlayImages;
+    //       });
+    //     } else if (type === "text") {
+    //       console.log("Dragging text to:", newX, newY);
+
+    //       setTextElements((prev) => {
+    //         const newTextElements = prev.map((el) =>
+    //           el.id === id ? { ...el, x: newX, y: newY } : el
+    //         );
+    //         setRenderTrigger((t) => t + 1);
+    //         notifyStateChange();
+    //         return newTextElements;
+    //       });
+    //     }
+    //   } else if (action === "resize") {
+    //     let newWidth = startWidth;
+    //     let newHeight = startHeight;
+    //     let newX = startLeft;
+    //     let newY = startTop;
+
+    //     if (type === "overlay") {
+    //       const minSize = 20;
+
+    //       if (direction === "e") {
+    //         newWidth = Math.max(minSize, startWidth + dx);
+    //       }
+    //       if (direction === "w") {
+    //         newWidth = Math.max(minSize, startWidth - dx);
+    //         newX = startLeft + dx;
+    //       }
+    //       if (direction === "s") {
+    //         newHeight = Math.max(minSize, startHeight + dy);
+    //       }
+    //       if (direction === "n") {
+    //         newHeight = Math.max(minSize, startHeight - dy);
+    //         newY = startTop + dy;
+    //       }
+    //       if (["ne", "se"].includes(direction)) {
+    //         newWidth = Math.max(minSize, startWidth + dx);
+    //       }
+    //       if (["nw", "sw"].includes(direction)) {
+    //         newWidth = Math.max(minSize, startWidth - dx);
+    //         newX = startLeft + dx;
+    //       }
+    //       if (["sw", "se"].includes(direction)) {
+    //         newHeight = Math.max(minSize, startHeight + dy);
+    //       }
+    //       if (["nw", "ne"].includes(direction)) {
+    //         newHeight = Math.max(minSize, startHeight - dy);
+    //         newY = startTop + dy;
+    //       }
+
+    //       setOverlayImages((prev) => {
+    //         const newOverlayImages = prev.map((el) =>
+    //           el.id === id
+    //             ? {
+    //                 ...el,
+    //                 width: newWidth,
+    //                 height: newHeight,
+    //                 x: newX,
+    //                 y: newY,
+    //               }
+    //             : el
+    //         );
+    //         notifyStateChange();
+    //         return newOverlayImages;
+    //       });
+    //     } else if (type === "text") {
+    //       if (["se", "nw", "ne", "sw"].includes(direction)) {
+    //         const delta = Math.max(dx, dy);
+    //         newWidth = Math.max(10, startWidth + delta);
+    //         newHeight = Math.max(10, startHeight + delta);
+    //         if (["nw", "sw"].includes(direction)) newX = startLeft - delta;
+    //         if (["nw", "ne"].includes(direction)) newY = startTop - delta;
+    //       } else {
+    //         if (direction.includes("e"))
+    //           newWidth = Math.max(10, startWidth + dx);
+    //         if (direction.includes("s"))
+    //           newHeight = Math.max(10, startHeight + dy);
+    //         if (direction.includes("w")) {
+    //           newWidth = Math.max(10, startWidth - dx);
+    //           newX = startLeft + dx;
+    //         }
+    //         if (direction.includes("n")) {
+    //           newHeight = Math.max(10, startHeight - dy);
+    //           newY = startTop + dy;
+    //         }
+    //       }
+
+    //       setTextElements((prev) => {
+    //         const newTextElements = prev.map((el) =>
+    //           el.id === id
+    //             ? {
+    //                 ...el,
+    //                 width: newWidth,
+    //                 height: newHeight,
+    //                 x: newX,
+    //                 y: newY,
+    //               }
+    //             : el
+    //         );
+    //         notifyStateChange();
+    //         return newTextElements;
+    //       });
+    //     }
+    //   }
+    // }, 10);
+
     const handleMove = throttle((moveEvent) => {
       if (!isDragging || !isMountedRef.current || !dragDataRef.current) return;
 
@@ -667,19 +838,20 @@ const ImageEditor = forwardRef(
       if (!dragDataRef.current.hasMoved) return;
 
       if (action === "drag") {
-        const element = overlayImages.find((el) => el.id === id);
+        const element =
+          type === "overlay"
+            ? overlayImages.find((el) => el.id === id)
+            : textElements.find((el) => el.id === id);
         if (!element) return;
 
-        const newX = Math.max(
-          0,
-          Math.min(currentX - offsetX, containerRect.width - element.width)
-        );
-        const newY = Math.max(
-          0,
-          Math.min(currentY - offsetY, containerRect.height - element.height)
-        );
+        let newX = currentX - offsetX;
+        let newY = currentY - offsetY;
 
-        
+        // Optional: Clamp inside canvas
+        const width = element.width || 100;
+        const height = element.height || 40;
+        newX = Math.max(0, Math.min(newX, containerRect.width - width));
+        newY = Math.max(0, Math.min(newY, containerRect.height - height));
 
         if (type === "overlay") {
           setOverlayImages((prev) => {
@@ -690,10 +862,12 @@ const ImageEditor = forwardRef(
             return newOverlayImages;
           });
         } else if (type === "text") {
+          console.log("Dragging text to:", newX, newY);
           setTextElements((prev) => {
             const newTextElements = prev.map((el) =>
               el.id === id ? { ...el, x: newX, y: newY } : el
             );
+            setRenderTrigger((t) => t + 1);
             notifyStateChange();
             return newTextElements;
           });
@@ -1869,8 +2043,8 @@ const ImageEditor = forwardRef(
               className="text-overlay-element-wrapper"
               style={{
                 position: "absolute",
-                top: el.y,
-                left: el.x,
+                top: `${el.y}px`,
+                left: `${el.x}px`,
                 zIndex: 100,
               }}
             >
@@ -1919,9 +2093,7 @@ const ImageEditor = forwardRef(
                     }
                   }}
                   onMouseDown={(e) => {
-                    if (e.target === textElementRefs.current[el.id]) {
-                      startDrag(e, el.id, "text");
-                    }
+                    startDrag(e, el.id, "text");
                   }}
                   onFocus={() => setSelectedTextId(el.id)}
                   onBlur={() => {
