@@ -667,8 +667,19 @@ const ImageEditor = forwardRef(
       if (!dragDataRef.current.hasMoved) return;
 
       if (action === "drag") {
-        const newX = currentX - offsetX;
-        const newY = currentY - offsetY;
+        const element = overlayImages.find((el) => el.id === id);
+        if (!element) return;
+
+        const newX = Math.max(
+          0,
+          Math.min(currentX - offsetX, containerRect.width - element.width)
+        );
+        const newY = Math.max(
+          0,
+          Math.min(currentY - offsetY, containerRect.height - element.height)
+        );
+
+        
 
         if (type === "overlay") {
           setOverlayImages((prev) => {

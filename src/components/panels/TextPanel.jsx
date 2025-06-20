@@ -132,7 +132,7 @@ const TextPanel = ({ editorRef }) => {
       </div> */}
 
       {/* Font Size */}
-      {/* <div className="form-group">
+      <div className="form-group">
         <label className="form-label">Font Size: {fontSize}px</label>
         <input
           type="range"
@@ -148,7 +148,7 @@ const TextPanel = ({ editorRef }) => {
           }}
           className="opacity-slider"
         />
-      </div> */}
+      </div>
 
       {/* Text Color */}
       <div className="form-group">
