@@ -1,21 +1,23 @@
-import React from "react";
 import {
   FaFont,
   FaCrop,
   FaAdjust,
   FaFilter,
   FaMagic,
+  FaRecycle,
   FaImage,
-} from "react-icons/fa";
+} from "react-icons/fa"; // ✅ Correct import
+
 import "./Sidebar.css";
 
 const tools = [
   { id: "text", label: "Text", icon: FaFont },
   { id: "add-image", label: "Image", icon: FaImage },
-  // { id: 'crop', label: 'Crop', icon: FaCrop },
   { id: "adjust", label: "Adjust", icon: FaAdjust },
   { id: "filters", label: "Filters", icon: FaFilter },
-  // { id: "effects", label: "Effects", icon: FaMagic },
+  { id: "generate", label: "Generate", icon: FaMagic }, // ✅ Use FaMagic here too
+  { id: "magic-fill", label: "Magic Fill", icon: FaMagic },
+  { id: "remix", label: "Remix", icon: FaRecycle },
 ];
 
 const Sidebar = ({ activeTool, onToolSelect }) => {
