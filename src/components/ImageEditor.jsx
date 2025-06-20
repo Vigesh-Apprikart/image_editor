@@ -801,6 +801,16 @@ const ImageEditor = forwardRef(
     //     }
     //   }
     // }, 10);
+    const handleStyles = {
+      nw: { top: 0, left: 0, transform: "translate(-50%, -50%)" },
+      n: { top: 0, left: "50%", transform: "translate(-50%, -50%)" },
+      ne: { top: 0, right: 0, transform: "translate(50%, -50%)" },
+      e: { top: "50%", right: 0, transform: "translate(50%, -50%)" },
+      se: { bottom: 0, right: 0, transform: "translate(50%, 50%)" },
+      s: { bottom: 0, left: "50%", transform: "translate(-50%, 50%)" },
+      sw: { bottom: 0, left: 0, transform: "translate(-50%, 50%)" },
+      w: { top: "50%", left: 0, transform: "translate(-50%, -50%)" },
+    };
 
     const handleMove = throttle((moveEvent) => {
       if (!isDragging || !isMountedRef.current || !dragDataRef.current) return;
@@ -933,10 +943,12 @@ const ImageEditor = forwardRef(
             if (["nw", "sw"].includes(direction)) newX = startLeft - delta;
             if (["nw", "ne"].includes(direction)) newY = startTop - delta;
           } else {
-            if (direction.includes("e"))
+            if (direction.includes("e")) {
               newWidth = Math.max(10, startWidth + dx);
-            if (direction.includes("s"))
+            }
+            if (direction.includes("s")) {
               newHeight = Math.max(10, startHeight + dy);
+            }
             if (direction.includes("w")) {
               newWidth = Math.max(10, startWidth - dx);
               newX = startLeft + dx;
@@ -2062,6 +2074,8 @@ const ImageEditor = forwardRef(
                   tabIndex={0}
                   suppressContentEditableWarning
                   style={{
+                    width: `${el.width}px`,
+                    height: `${el.height}px`,
                     fontSize: el.fontSize,
                     fontFamily: el.fontFamily,
                     color: el.color,
@@ -2119,27 +2133,56 @@ const ImageEditor = forwardRef(
 
                 {/* Move handle */}
                 {selectedTextId === el.id && (
-                  <div
-                    className="text-move-handle"
-                    onMouseDown={(e) => startDrag(e, el.id, "text")}
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: "50%",
-                      transform: "translate(0%, -110%)",
-                      backgroundColor: "#8B5CF6",
-                      color: "#fff",
-                      fontSize: "12px",
-                      padding: "2px 6px",
-                      borderRadius: "4px",
-                      cursor: "move",
-                      userSelect: "none",
-                      whiteSpace: "nowrap",
-                      zIndex: 999,
-                    }}
-                  >
-                    ↔ Move
-                  </div>
+                  <>
+                    <div
+                      className="text-move-handle"
+                      onMouseDown={(e) => startDrag(e, el.id, "text")}
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: "50%",
+                        transform: "translate(0%, -110%)",
+                        backgroundColor: "#8B5CF6",
+                        color: "#fff",
+                        fontSize: "12px",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        cursor: "move",
+                        userSelect: "none",
+                        whiteSpace: "nowrap",
+                        zIndex: 999,
+                      }}
+                    >
+                      ↔ Move
+                    </div>
+                    {/* Add resize handles */}
+                    {["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((dir) => (
+                      <div
+                        key={dir}
+                        className={`resizer resizer-${dir}`}
+                        onMouseDown={(e) => startResize(e, el.id, "text", dir)}
+                        style={{
+                          position: "absolute",
+                          width: "10px",
+                          height: "10px",
+                          background: "#8B5CF6",
+                          zIndex: 9999,
+                          cursor: {
+                            nw: "nwse-resize",
+                            ne: "nesw-resize",
+                            se: "nwse-resize",
+                            sw: "nesw-resize",
+                            n: "ns-resize",
+                            s: "ns-resize",
+                            e: "ew-resize",
+                            w: "ew-resize",
+                          }[dir],
+                          borderRadius: "2px",
+                          ...handleStyles[dir],
+                        }}
+                      />
+                    ))}
+                  </>
                 )}
               </div>
             </div>
